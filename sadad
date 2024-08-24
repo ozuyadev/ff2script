@@ -1,0 +1,216 @@
+-- Safety check to ensure the script is running in the right environment
+local function safetyCheck()
+    -- Example check: Ensure the script is not running in Studio mode
+    if game:GetService("RunService"):IsStudio() then
+        warn("Script should not run in Studio mode.")
+        return false
+    end
+    return true
+end
+
+if not safetyCheck() then
+    return
+end
+
+-- Ensure the game ID is correct
+local function checkGameID()
+    local expectedGameID = 8204899140
+    if game.PlaceId ~= expectedGameID then
+        warn("This script is intended for Football Fusion 2 only.")
+        return false
+    end
+    return true
+end
+
+if not checkGameID() then
+    return
+end
+
+-- Load Orion UI library
+local success, OrionLib = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+end)
+
+if not success then
+    warn("Failed to load Orion UI library.")
+    return
+end
+
+-- Initialize UI
+local Window = OrionLib:MakeWindow({Name = "Tyrant Hub", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
+
+if not Window then
+    warn("Failed to create UI window.")
+    return
+end
+
+-- Create Player Tab
+local Tab = Window:MakeTab({
+    Name = "Player",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Anti-cheat bypass setup
+local function setupAntiCheatBypass()
+    -- Example bypass: Hide script sources or modify game functions
+    -- This is a simplified placeholder; real implementation depends on the specific anti-cheat system
+    local oldIndex = debug.getinfo
+    local oldGetGC = getgc
+    local function newGetGC(...)
+        local result = {oldGetGC(...)}
+        -- Filter out suspicious functions or data from the GC
+        return result
+    end
+
+    hookfunction(debug.getinfo, function(...)
+        local info = oldIndex(...)
+        if info and info.source and string.find(info.source, "PlayerModule") then
+            return nil
+        end
+        return oldIndex(...)
+    end)
+
+    hookfunction(getgc, newGetGC)
+end
+
+setupAntiCheatBypass()
+
+-- Walkspeed settings
+local magEnabled = false
+local customDistance = 0
+local magnetDelayEnabled = false
+local magnetDelay = 0
+local showTransparencyState = false
+local originalSizes = {}
+local originalTransparencies = {}
+
+Tab:AddToggle({
+    Name = "Walkspeed",
+    Default = false,
+    Callback = function(enabled)
+        _G.Walkspeed = enabled
+        if enabled then
+            -- Start movement logic
+            _G.WalkspeedValue = _G.WalkspeedValue or 0.30
+            local moveConnection = task.spawn(function()
+                while _G.Walkspeed do
+                    local player = game:GetService("Players").LocalPlayer
+                    local character = player.Character
+                    if character then
+                        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                        local humanoid = character:FindFirstChild("Humanoid")
+                        if humanoidRootPart and humanoid then
+                            humanoidRootPart.CFrame = humanoidRootPart.CFrame + humanoid.MoveDirection * _G.WalkspeedValue
+                        end
+                    end
+                    task.wait()
+                end
+            end)
+        else
+            -- Stop movement logic
+            _G.Walkspeed = false
+        end
+    end
+})
+
+Tab:AddSlider({
+    Name = "Walkspeed Value",
+    Min = 0,
+    Max = 0.45,
+    Default = 0,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 0.01,
+    ValueName = "Speed",
+    Callback = function(value)
+        _G.WalkspeedValue = value
+    end
+})
+
+-- Jump Power settings
+Tab:AddToggle({
+    Name = "JumpPower",
+    Default = false,
+    Callback = function(enabled)
+        _G.JumpPower = enabled
+        if enabled then
+            -- Start jump power logic
+            _G.JumpPowerValue = _G.JumpPowerValue or 50
+            local jumpConnection = task.spawn(function()
+                while _G.JumpPower do
+                    local player = game:GetService("Players").LocalPlayer
+                    local character = player.Character
+                    if character then
+                        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                        local humanoid = character:FindFirstChild("Humanoid")
+                        if humanoidRootPart and humanoid then
+                            if humanoid:GetState() == Enum.HumanoidStateType.Jumping then
+                                humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, _G.JumpPowerValue / 50, 0)
+                            end
+                        end
+                    end
+                    task.wait()
+                end
+            end)
+        else
+            -- Stop jump power logic
+            _G.JumpPower = false
+        end
+    end
+})
+
+Tab:AddSlider({
+    Name = "JumpPower Value",
+    Min = 50,
+    Max = 300,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Power",
+    Callback = function(value)
+        _G.JumpPowerValue = value
+    end
+})
+
+-- Event connections for character changes
+local player = game:GetService("Players").LocalPlayer
+player.CharacterAdded:Connect(function(character)
+    character:WaitForChild("HumanoidRootPart")
+    if _G.Walkspeed then
+        -- Start movement logic
+        _G.WalkspeedValue = _G.WalkspeedValue or 0.30
+        local moveConnection = task.spawn(function()
+            while _G.Walkspeed do
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                local humanoid = character:FindFirstChild("Humanoid")
+                if humanoidRootPart and humanoid then
+                    humanoidRootPart.CFrame = humanoidRootPart.CFrame + humanoid.MoveDirection * _G.WalkspeedValue
+                end
+                task.wait()
+            end
+        end)
+    end
+    if _G.JumpPower then
+        -- Start jump power logic
+        _G.JumpPowerValue = _G.JumpPowerValue or 50
+        local jumpConnection = task.spawn(function()
+            while _G.JumpPower do
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                local humanoid = character:FindFirstChild("Humanoid")
+                if humanoidRootPart and humanoid then
+                    if humanoid:GetState() == Enum.HumanoidStateType.Jumping then
+                        humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, _G.JumpPowerValue / 50, 0)
+                    end
+                end
+                task.wait()
+            end
+        end)
+    end
+end)
+
+-- Initialize the character if already present
+if player.Character then
+    player.CharacterAdded(player.Character)
+end
+
+-- Further customization and additional tabs can be added similarly
