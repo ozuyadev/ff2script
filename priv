@@ -167,7 +167,7 @@ local function updateMagnetStatus()
                     hitboxIndicator.Position = ball.Position
                     hitboxIndicator.Anchored = true
                     hitboxIndicator.CanCollide = false
-                    hitboxIndicator.BrickColor = BrickColor.new("Gray")
+                    hitboxIndicator.BrickColor = BrickColor.new("Grey")
                     hitboxIndicator.Material = Enum.Material.SmoothPlastic
                     hitboxIndicator.Transparency = 0.5
                     hitboxIndicator.Parent = workspace
