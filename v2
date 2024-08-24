@@ -1,0 +1,257 @@
+-- Load Orion UI from the URL
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+local Window = OrionLib:MakeWindow({Name = "Custom UI", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
+
+-- Variables for features
+_G.Walkspeed = false
+_G.WalkspeedValue = 0.30
+_G.JumpPower = false
+_G.JumpPowerValue = 50
+_G.MagnetEnabled = false
+_G.MagnetRange = 10
+_G.MagnetDelay = 0
+_G.ShowHitbox = false
+
+-- Create a basic UI
+local function createBasicUI()
+    local success, err = pcall(function()
+        local Tab = Window:MakeTab({
+            Name = "Main",
+            Icon = "rbxassetid://4483345998", -- Replace with appropriate icon ID
+            PremiumOnly = false
+        })
+
+        Tab:AddSection({Name = "Movement"})
+
+        -- Walkspeed Toggle
+        local walkSpeedToggle, walkSpeedSlider, jumpPowerToggle, jumpPowerSlider
+        walkSpeedToggle = Tab:AddToggle({
+            Name = "Walkspeed",
+            Default = false,
+            Callback = function(value)
+                _G.Walkspeed = value
+                if value then
+                    startMovement()
+                else
+                    stopMovement()
+                end
+            end
+        })
+
+        -- Walkspeed Slider
+        walkSpeedSlider = Tab:AddSlider({
+            Name = "Walkspeed Value",
+            Min = 0,
+            Max = 0.45,
+            Default = 0,
+            Color = Color3.fromRGB(255, 255, 255),
+            Increment = 0.01,
+            ValueName = "Speed",
+            Callback = function(value)
+                _G.WalkspeedValue = value
+            end
+        })
+
+        -- JumpPower Toggle
+        jumpPowerToggle = Tab:AddToggle({
+            Name = "JumpPower",
+            Default = false,
+            Callback = function(value)
+                _G.JumpPower = value
+                if value then
+                    startJumpPower()
+                else
+                    stopJumpPower()
+                end
+            end
+        })
+
+        -- JumpPower Slider
+        jumpPowerSlider = Tab:AddSlider({
+            Name = "JumpPower Value",
+            Min = 50,
+            Max = 300,
+            Default = 50,
+            Color = Color3.fromRGB(255, 255, 255),
+            Increment = 1,
+            ValueName = "Power",
+            Callback = function(value)
+                _G.JumpPowerValue = value
+            end
+        })
+
+        -- Magnet Toggle
+        Tab:AddToggle({
+            Name = "Magnet",
+            Default = false,
+            Callback = function(value)
+                _G.MagnetEnabled = value
+                updateMagnetStatus()
+            end
+        })
+
+        -- Magnet Range Slider
+        Tab:AddSlider({
+            Name = "Magnet Range",
+            Min = 1,
+            Max = 25,
+            Default = 10,
+            Color = Color3.fromRGB(255, 255, 255),
+            Increment = 0.1,
+            ValueName = "Range",
+            Callback = function(value)
+                _G.MagnetRange = value
+                updateMagnetStatus()
+            end
+        })
+
+        -- Magnet Delay Slider
+        Tab:AddSlider({
+            Name = "Magnet Delay",
+            Min = 0,
+            Max = 1,
+            Default = 0,
+            Color = Color3.fromRGB(255, 255, 255),
+            Increment = 0.1,
+            ValueName = "Delay",
+            Callback = function(value)
+                _G.MagnetDelay = value
+            end
+        })
+
+        -- Show Hitbox Toggle
+        Tab:AddToggle({
+            Name = "ShowHitbox",
+            Default = false,
+            Callback = function(value)
+                _G.ShowHitbox = value
+                updateMagnetStatus()
+            end
+        })
+    end)
+
+    if not success then
+        warn("Error creating UI: " .. err)
+    end
+end
+
+createBasicUI()
+
+-- Anti-cheat bypass setup
+local function setupAntiCheatBypass()
+    -- Example bypass: Hide script sources or modify game functions
+    local oldIndex = debug.getinfo
+    local oldGetGC = getgc
+    local function newGetGC(...)
+        local result = {oldGetGC(...)}
+        -- Filter out suspicious functions or data from the GC
+        return result
+    end
+
+    hookfunction(debug.getinfo, function(...)
+        local info = oldIndex(...)
+        if info and info.source and string.find(info.source, "PlayerModule") then
+            return nil
+        end
+        return oldIndex(...)
+    end)
+
+    hookfunction(getgc, newGetGC)
+end
+
+setupAntiCheatBypass()
+
+-- Walkspeed and JumpPower functions
+local function startMovement()
+    if _G.Walkspeed then
+        local moveConnection = task.spawn(function()
+            while _G.Walkspeed do
+                local character = game.Players.LocalPlayer.Character
+                if character then
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    local humanoid = character:FindFirstChild("Humanoid")
+                    if humanoidRootPart and humanoid then
+                        humanoidRootPart.CFrame = humanoidRootPart.CFrame + humanoid.MoveDirection * _G.WalkspeedValue
+                    end
+                end
+                task.wait()
+            end
+        end)
+    end
+end
+
+local function stopMovement()
+    _G.Walkspeed = false
+    -- Assuming moveConnection is globally accessible or managed properly
+end
+
+local function startJumpPower()
+    if _G.JumpPower then
+        local jumpConnection = task.spawn(function()
+            while _G.JumpPower do
+                local character = game.Players.LocalPlayer.Character
+                if character then
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    local humanoid = character:FindFirstChild("Humanoid")
+                    if humanoidRootPart and humanoid then
+                        if humanoid:GetState() == Enum.HumanoidStateType.Jumping then
+                            humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, _G.JumpPowerValue / 50, 0)
+                        end
+                    end
+                end
+                task.wait()
+            end
+        end)
+    end
+end
+
+local function stopJumpPower()
+    _G.JumpPower = false
+    -- Assuming jumpConnection is globally accessible or managed properly
+end
+
+-- Magnet feature
+local function updateMagnetStatus()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+
+    if character then
+        local left = character:FindFirstChild("CatchLeft")
+        local right = character:FindFirstChild("CatchRight")
+
+        if left and right then
+            if _G.MagnetEnabled then
+                if _G.MagnetDelay > 0 then
+                    wait(_G.MagnetDelay)
+                end
+                left.Size = Vector3.new(_G.MagnetRange, _G.MagnetRange, _G.MagnetRange)
+                right.Size = Vector3.new(_G.MagnetRange, _G.MagnetRange, _G.MagnetRange)
+                left.Transparency = _G.ShowHitbox and 0.8 or 1
+                right.Transparency = _G.ShowHitbox and 0.8 or 1
+            else
+                -- Reset sizes and transparencies if magnet is disabled
+                left.Size = Vector3.new(1, 1, 1) -- Set to original size or desired default
+                right.Size = Vector3.new(1, 1, 1)
+                left.Transparency = 1
+                right.Transparency = 1
+            end
+        end
+    end
+end
+
+-- Event connections for character changes
+game.Players.LocalPlayer.CharacterAdded:Connect(function(character)
+    character:WaitForChild("HumanoidRootPart")
+    if _G.Walkspeed then
+        startMovement()
+    end
+    if _G.JumpPower then
+        startJumpPower()
+    end
+    updateMagnetStatus()
+end)
+
+-- Initialize the character if already present
+if game.Players.LocalPlayer.Character then
+    game.Players.LocalPlayer.CharacterAdded(game.Players.LocalPlayer.Character)
+end
