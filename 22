@@ -1,0 +1,205 @@
+-- Basic Anti-Cheat Bypass
+if not LPH_OBFUSCATED then
+    getfenv().LPH_NO_VIRTUALIZE = function(f) return f end
+    getfenv().LPH_JIT_MAX = function(f) return f end
+end
+
+if game.PlaceId == 8204899140 then
+    LPH_JIT_MAX(function()
+        local Hooks = {}
+        local Targets = {}
+        local Whitelisted = {
+            {655, 775, 724, 633, 891},
+            {760, 760, 771, 665, 898},
+            {660, 759, 751, 863, 771},
+        }
+
+        local function TableEquality(x, y)
+            if (#x ~= #y) then return false end
+            for i, v in next, x do
+                if (y[i] ~= v) then return false end
+            end
+            return true
+        end
+
+        LPH_NO_VIRTUALIZE(function()
+            for i, v in next, getgc(true) do
+                if (type(v) == "function") then
+                    local ScriptTrace, Line = debug.info(v, "sl")
+                    if string.find(ScriptTrace, "PlayerModule.LocalScript") and table.find({42, 51, 61}, Line) then
+                        table.insert(Targets, v)
+                    end
+                end
+                if (type(v) == "table") and (rawlen(v) == 19) and getrawmetatable(v) then
+                    Targets.call = rawget(getrawmetatable(v), "call")
+                end
+            end
+        end)()
+
+        if not (Targets[1] and Targets[2] and Targets[3] and Targets.call) then
+            warn("Bypass failed to load properly")
+            return
+        end
+
+        local ScriptPath = debug.info(Targets[1], "s")
+
+        Hooks.debug_info = hookfunction(debug.info, LPH_NO_VIRTUALIZE(function(...)
+            if not checkcaller() and TableEquality({...}, {2, "s"}) then
+                return ScriptPath
+            end
+            return Hooks.debug_info(...)
+        end))
+
+        hookfunction(Targets[1], LPH_NO_VIRTUALIZE(function() end))
+        hookfunction(Targets[2], LPH_NO_VIRTUALIZE(function() end))
+        hookfunction(Targets[3], LPH_NO_VIRTUALIZE(function() end))
+
+        Hooks.call = hookfunction(Targets.call, LPH_NO_VIRTUALIZE(function(self, ...)
+            if TableEquality(Whitelisted[1], {...}) or TableEquality(Whitelisted[2], {...}) or TableEquality(Whitelisted[3], {...}) then
+                return Hooks.call(self, ...)
+            end
+        end))
+
+        task.wait(3)
+    end)
+end
+
+-- Create Basic UI
+local function createUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.3, 0, 0.5, 0)
+    frame.Position = UDim2.new(0.35, 0, 0.25, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    frame.Parent = screenGui
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0.1, 0)
+    title.Text = "Tyrant Hub"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    title.Parent = frame
+
+    -- Walkspeed
+    local walkspeedToggle = Instance.new("TextButton")
+    walkspeedToggle.Size = UDim2.new(1, 0, 0.1, 0)
+    walkspeedToggle.Position = UDim2.new(0, 0, 0.1, 0)
+    walkspeedToggle.Text = "Toggle Walkspeed"
+    walkspeedToggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    walkspeedToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    walkspeedToggle.Parent = frame
+
+    local walkspeedSlider = Instance.new("Slider")
+    walkspeedSlider.Size = UDim2.new(1, 0, 0.1, 0)
+    walkspeedSlider.Position = UDim2.new(0, 0, 0.2, 0)
+    walkspeedSlider.MinValue = 0
+    walkspeedSlider.MaxValue = 0.45
+    walkspeedSlider.DefaultValue = 0.3
+    walkspeedSlider.Parent = frame
+
+    -- JumpPower
+    local jumpPowerToggle = Instance.new("TextButton")
+    jumpPowerToggle.Size = UDim2.new(1, 0, 0.1, 0)
+    jumpPowerToggle.Position = UDim2.new(0, 0, 0.3, 0)
+    jumpPowerToggle.Text = "Toggle JumpPower"
+    jumpPowerToggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    jumpPowerToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    jumpPowerToggle.Parent = frame
+
+    local jumpPowerSlider = Instance.new("Slider")
+    jumpPowerSlider.Size = UDim2.new(1, 0, 0.1, 0)
+    jumpPowerSlider.Position = UDim2.new(0, 0, 0.4, 0)
+    jumpPowerSlider.MinValue = 50
+    jumpPowerSlider.MaxValue = 300
+    jumpPowerSlider.DefaultValue = 50
+    jumpPowerSlider.Parent = frame
+
+    -- Magnets
+    local magnetsToggle = Instance.new("TextButton")
+    magnetsToggle.Size = UDim2.new(1, 0, 0.1, 0)
+    magnetsToggle.Position = UDim2.new(0, 0, 0.5, 0)
+    magnetsToggle.Text = "Toggle Magnets"
+    magnetsToggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    magnetsToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    magnetsToggle.Parent = frame
+
+    local magnetsSlider = Instance.new("Slider")
+    magnetsSlider.Size = UDim2.new(1, 0, 0.1, 0)
+    magnetsSlider.Position = UDim2.new(0, 0, 0.6, 0)
+    magnetsSlider.MinValue = 1
+    magnetsSlider.MaxValue = 25
+    magnetsSlider.DefaultValue = 10
+    magnetsSlider.Parent = frame
+
+    -- ShowHitbox
+    local showHitboxToggle = Instance.new("TextButton")
+    showHitboxToggle.Size = UDim2.new(1, 0, 0.1, 0)
+    showHitboxToggle.Position = UDim2.new(0, 0, 0.7, 0)
+    showHitboxToggle.Text = "Toggle ShowHitbox"
+    showHitboxToggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    showHitboxToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    showHitboxToggle.Parent = frame
+
+    -- Functionality
+    walkspeedToggle.MouseButton1Click:Connect(function()
+        walkspeedEnabled = not walkspeedEnabled
+        -- Handle Walkspeed Toggle
+    end)
+
+    walkspeedSlider.Changed:Connect(function(value)
+        walkspeedValue = value
+        -- Update Walkspeed
+    end)
+
+    jumpPowerToggle.MouseButton1Click:Connect(function()
+        jumpPowerEnabled = not jumpPowerEnabled
+        -- Handle JumpPower Toggle
+    end)
+
+    jumpPowerSlider.Changed:Connect(function(value)
+        jumpPowerValue = value
+        -- Update JumpPower
+    end)
+
+    magnetsToggle.MouseButton1Click:Connect(function()
+        magEnabled = not magEnabled
+        -- Handle Magnet Toggle
+    end)
+
+    magnetsSlider.Changed:Connect(function(value)
+        customDistance = value
+        -- Update Magnet Range
+    end)
+
+    showHitboxToggle.MouseButton1Click:Connect(function()
+        showTransparencyState = not showTransparencyState
+        -- Handle ShowHitbox Toggle
+    end)
+end
+
+-- Initialize the UI
+createUI()
+
+-- Additional logic for features goes here
+
+local function updateMagnetStatus()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+
+    if character then
+        local left = character:FindFirstChild("CatchLeft")
+        local right = character:FindFirstChild("CatchRight")
+
+        if left and right then
+            if magEnabled then
+                if magnetDelayEnabled then
+                    wait(magnetDelay)
+                end
+
+                left.Size = Vector3.new(customDistance, customDistance, customDistance)
+                right.Size = Vector3.new(customDistance, customDistance, customDistance)
+                left.Transparency = showTransparencyState and 0.5 or 1
+                right.Transparency = showTransparencyState and 0.5 or 1
+           
