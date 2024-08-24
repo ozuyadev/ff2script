@@ -1,0 +1,270 @@
+-- Anti-Cheat Bypass
+if game.PlaceId == 8204899140 then
+    local function HookFunction(target, newFunc)
+        local originalFunc = hookfunction(target, newFunc)
+        return originalFunc
+    end
+
+    local function BypassAntiCheat()
+        local Hooks = {}
+        local Targets = {}
+
+        -- Function to check equality of tables
+        local function TableEquality(x, y)
+            if (#x ~= #y) then
+                return false
+            end
+            for i, v in next, x do
+                if (y[i] ~= v) then
+                    return false
+                end
+            end
+            return true
+        end
+
+        -- Gather functions and tables for hooks
+        local function GatherFunctions()
+            for _, v in next, getgc(true) do
+                if (type(v) == "function") then
+                    local ScriptTrace, Line = debug.info(v, "sl")
+                    if string.find(ScriptTrace, "PlayerModule.LocalScript") and table.find({42, 51, 61}, Line) then
+                        table.insert(Targets, v)
+                    end
+                end
+                if (type(v) == "table") and (rawlen(v) == 19) and getrawmetatable(v) then
+                    Targets.call = rawget(getrawmetatable(v), "call")
+                end
+            end
+        end
+
+        -- Hook the necessary functions to bypass anti-cheat
+        local function ApplyHooks()
+            local ScriptPath = debug.info(Targets[1], "s")
+            Hooks.debug_info = HookFunction(debug.info, function(...)
+                if not checkcaller() and TableEquality({...}, {2, "s"}) then
+                    return ScriptPath
+                end
+                return Hooks.debug_info(...)
+            end)
+
+            HookFunction(Targets[1], function() end)
+            HookFunction(Targets[2], function() end)
+            HookFunction(Targets[3], function() end)
+
+            Hooks.call = HookFunction(Targets.call, function(self, ...)
+                return Hooks.call(self, ...)
+            end)
+        end
+
+        -- Execute functions to bypass anti-cheat
+        GatherFunctions()
+        if Targets[1] and Targets[2] and Targets[3] and Targets.call then
+            ApplyHooks()
+        else
+            warn("Bypass failed to load properly")
+        end
+
+        -- Wait to ensure bypass is applied
+        task.wait(3)
+    end
+
+    BypassAntiCheat()
+end
+
+-- Main Script
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({Name = "Tyrant Hub", HidePremium = false, SaveConfig = true, ConfigFolder = "TyrantHub"})
+
+-- Catching Tab
+local CatchingTab = Window:MakeTab({
+    Name = "Catching",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local magEnabled = false
+local customDistance = 10
+local magnetDelayEnabled = false
+local magnetDelay = 0
+local showTransparencyState = false
+local originalSizes = {}
+local originalTransparencies = {}
+
+CatchingTab:AddSection({Name = "Magnets"})
+
+CatchingTab:AddToggle({
+    Name = "Magnets",
+    Default = false,
+    Callback = function(value)
+        magEnabled = value
+    end,
+})
+
+CatchingTab:AddSlider({
+    Name = "Magnets Range",
+    Min = 1,
+    Max = 50,
+    Default = 10,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 0.1,
+    ValueName = "Range",
+    Callback = function(value)
+        customDistance = value
+    end,
+})
+
+CatchingTab:AddToggle({
+    Name = "Magnets Delay",
+    Default = false,
+    Callback = function(value)
+        magnetDelayEnabled = value
+    end,
+})
+
+CatchingTab:AddSlider({
+    Name = "Magnets Delay",
+    Min = 0,
+    Max = 1,
+    Default = 0,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 0.1,
+    ValueName = "Delay",
+    Callback = function(value)
+        magnetDelay = value
+    end,
+})
+
+CatchingTab:AddToggle({
+    Name = "Show Hitbox",
+    Default = false,
+    Callback = function(value)
+        showTransparencyState = value
+    end,
+})
+
+local function updateMagnetStatus()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+
+    if character then
+        local ball = workspace:FindFirstChild("Football")
+        
+        if ball then
+            if magEnabled then
+                if magnetDelayEnabled then
+                    wait(magnetDelay) 
+                end
+                ball.Size = Vector3.new(customDistance, customDistance, customDistance)
+                ball.Transparency = showTransparencyState and 0.8 or 1
+                -- Create or update hitbox indicator
+                local hitboxIndicator = workspace:FindFirstChild("HitboxIndicator")
+                if showTransparencyState then
+                    if not hitboxIndicator then
+                        hitboxIndicator = Instance.new("Part")
+                        hitboxIndicator.Name = "HitboxIndicator"
+                        hitboxIndicator.Size = Vector3.new(customDistance, customDistance, customDistance)
+                        hitboxIndicator.Color = Color3.fromRGB(128, 128, 128)  -- Grey color
+                        hitboxIndicator.Anchored = true
+                        hitboxIndicator.CanCollide = false
+                        hitboxIndicator.Transparency = 0.5
+                        hitboxIndicator.Parent = workspace
+                    else
+                        hitboxIndicator.Size = Vector3.new(customDistance, customDistance, customDistance)
+                        hitboxIndicator.Transparency = 0.5
+                    end
+                elseif hitboxIndicator then
+                    hitboxIndicator:Destroy()
+                end
+            else
+                ball.Size = Vector3.new(1, 1, 1)
+                ball.Transparency = 1
+                -- Remove hitbox indicator
+                local hitboxIndicator = workspace:FindFirstChild("HitboxIndicator")
+                if hitboxIndicator then
+                    hitboxIndicator:Destroy()
+                end
+            end
+        end
+    end
+end
+
+spawn(function()
+    while true do
+        updateMagnetStatus()
+        wait(1)
+    end
+end)
+
+-- Player Tab
+local PlayerTab = Window:MakeTab({
+    Name = "Player",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local walkspeedEnabled = false
+local jumpPowerEnabled = false
+local currentWalkspeed = 20
+local currentJumpPower = 50
+
+PlayerTab:AddToggle({
+    Name = "Walkspeed",
+    Default = false,
+    Callback = function(value)
+        walkspeedEnabled = value
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "Walkspeed",
+    Min = 20,
+    Max = 25,
+    Default = 20,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Speed",
+    Callback = function(value)
+        currentWalkspeed = value
+    end
+})
+
+PlayerTab:AddToggle({
+    Name = "JumpPower",
+    Default = false,
+    Callback = function(value)
+        jumpPowerEnabled = value
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "JumpPower",
+    Min = 50,
+    Max = 65,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Power",
+    Callback = function(value)
+        currentJumpPower = value
+    end
+})
+
+-- Apply Player Settings
+local function applyPlayerSettings()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = walkspeedEnabled and currentWalkspeed or 16
+            humanoid.JumpPower = jumpPowerEnabled and currentJumpPower or 50
+        end
+    end
+end
+
+spawn(function()
+    while true do
+        applyPlayerSettings()
+        wait(0.1)
+    end
+end)
