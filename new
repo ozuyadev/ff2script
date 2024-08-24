@@ -1,0 +1,126 @@
+-- Ensure the game ID is correct
+local function checkGameID()
+    local expectedGameID = 8204899140
+    if game.PlaceId ~= expectedGameID then
+        warn("This script is intended for Football Fusion 2 only.")
+        return false
+    end
+    return true
+end
+
+if not checkGameID() then
+    return
+end
+
+-- Create a basic UI
+local function createBasicUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "CustomUI"
+    screenGui.Parent = game.Players.LocalPlayer.PlayerGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 300, 0, 200)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.5
+    frame.Parent = screenGui
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0.2, 0)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.Text = "Custom UI"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    title.Parent = frame
+
+    -- Add buttons and sliders here
+end
+
+createBasicUI()
+
+-- Anti-cheat bypass setup
+local function setupAntiCheatBypass()
+    -- Example bypass: Hide script sources or modify game functions
+    -- This is a simplified placeholder; real implementation depends on the specific anti-cheat system
+    local oldIndex = debug.getinfo
+    local oldGetGC = getgc
+    local function newGetGC(...)
+        local result = {oldGetGC(...)}
+        -- Filter out suspicious functions or data from the GC
+        return result
+    end
+
+    hookfunction(debug.getinfo, function(...)
+        local info = oldIndex(...)
+        if info and info.source and string.find(info.source, "PlayerModule") then
+            return nil
+        end
+        return oldIndex(...)
+    end)
+
+    hookfunction(getgc, newGetGC)
+end
+
+setupAntiCheatBypass()
+
+-- Walkspeed and JumpPower settings
+local _G = _G or {}
+_G.Walkspeed = false
+_G.WalkspeedValue = 0.30
+_G.JumpPower = false
+_G.JumpPowerValue = 50
+
+local player = game:GetService("Players").LocalPlayer
+local function startMovement()
+    if _G.Walkspeed then
+        local moveConnection = task.spawn(function()
+            while _G.Walkspeed do
+                local character = player.Character
+                if character then
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    local humanoid = character:FindFirstChild("Humanoid")
+                    if humanoidRootPart and humanoid then
+                        humanoidRootPart.CFrame = humanoidRootPart.CFrame + humanoid.MoveDirection * _G.WalkspeedValue
+                    end
+                end
+                task.wait()
+            end
+        end)
+    end
+end
+
+local function startJumpPower()
+    if _G.JumpPower then
+        local jumpConnection = task.spawn(function()
+            while _G.JumpPower do
+                local character = player.Character
+                if character then
+                    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                    local humanoid = character:FindFirstChild("Humanoid")
+                    if humanoidRootPart and humanoid then
+                        if humanoid:GetState() == Enum.HumanoidStateType.Jumping then
+                            humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, _G.JumpPowerValue / 50, 0)
+                        end
+                    end
+                end
+                task.wait()
+            end
+        end)
+    end
+end
+
+-- Event connections for character changes
+player.CharacterAdded:Connect(function(character)
+    character:WaitForChild("HumanoidRootPart")
+    if _G.Walkspeed then
+        startMovement()
+    end
+    if _G.JumpPower then
+        startJumpPower()
+    end
+end)
+
+-- Initialize the character if already present
+if player.Character then
+    player.CharacterAdded(player.Character)
+end
