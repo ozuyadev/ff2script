@@ -1,0 +1,226 @@
+if not LPH_OBFUSCATED then
+    getfenv().LPH_NO_VIRTUALIZE = function(f) return f end
+    getfenv().LPH_JIT_MAX = function(f) return f end
+end
+
+if game.PlaceId == 8204899140 then
+
+LPH_JIT_MAX(function()
+
+local Hooks = {}
+local Targets = {}
+local Whitelisted = {
+    {655, 775, 724, 633, 891},
+    {760, 760, 771, 665, 898},
+    {660, 759, 751, 863, 771},
+}
+
+local function TableEquality(x, y)
+    if (#x ~= #y) then
+        return false
+    end
+
+    for i, v in next, x do
+        if (y[i] ~= v) then
+            return false
+        end
+    end
+
+    return true
+end
+
+LPH_NO_VIRTUALIZE(function()
+    for i, v in next, getgc(true) do
+        if (type(v) == "function") then
+            local ScriptTrace, Line = debug.info(v, "sl")
+
+            if string.find(ScriptTrace, "PlayerModule.LocalScript") and table.find({42, 51, 61}, Line) then
+                table.insert(Targets, v)
+            end
+        end
+
+        if (type(v) == "table") and (rawlen(v) == 19) and getrawmetatable(v) then
+            Targets.call = rawget(getrawmetatable(v), "call")
+        end
+    end
+end)()
+
+if not (Targets[1] and Targets[2] and Targets[3] and Targets.call) then
+    warn("Bypass failed to load properly")
+    return
+end
+
+local ScriptPath = debug.info(Targets[1], "s")
+
+Hooks.debug_info = hookfunction(debug.info, LPH_NO_VIRTUALIZE(function(...)
+    if not checkcaller() and TableEquality({...}, {2, "s"}) then
+        return ScriptPath
+    end
+
+    return Hooks.debug_info(...)
+end))
+
+hookfunction(Targets[1], LPH_NO_VIRTUALIZE(function() end))
+hookfunction(Targets[2], LPH_NO_VIRTUALIZE(function() end))
+hookfunction(Targets[3], LPH_NO_VIRTUALIZE(function() end))
+
+Hooks.call = hookfunction(Targets.call, LPH_NO_VIRTUALIZE(function(self, ...)
+    if
+        TableEquality(Whitelisted[1], {...}) or
+        TableEquality(Whitelisted[2], {...}) or
+        TableEquality(Whitelisted[3], {...})
+    then
+        return Hooks.call(self, ...)
+    end
+end))
+
+task.wait(3)
+
+end)()
+
+end
+
+-- Orion UI setup
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({Name = "Tyrant Hub", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
+
+-- Catching Tab
+local CatchingTab = Window:MakeTab({
+    Name = "Catching",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+CatchingTab:AddSection({Name = "Magnets"})
+
+local magEnabled = false
+local customDistance = 25
+local magnetDelayEnabled = false
+local magnetDelay = 0
+local showTransparencyState = false
+
+local originalSizes = {}
+local originalTransparencies = {}
+
+local magToggle = CatchingTab:AddToggle({
+    Name = "Magnets",
+    Default = false,
+    Callback = function(value)
+        magEnabled = value
+    end,
+})
+
+local magSlider = CatchingTab:AddSlider({
+    Name = "Magnets Range",
+    Min = 1,
+    Max = 25,
+    Default = 25,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 0.1,
+    ValueName = "Range",
+    Callback = function(value)
+        customDistance = value
+    end,
+})
+
+local delayToggle = CatchingTab:AddToggle({
+    Name = "Magnets Delay",
+    Default = false,
+    Callback = function(value)
+        magnetDelayEnabled = value
+    end,
+})
+
+local delaySlider = CatchingTab:AddSlider({
+    Name = "Magnets Delay",
+    Min = 0,
+    Max = 1,
+    Default = 0,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 0.1,
+    ValueName = "Delay",
+    Callback = function(value)
+        magnetDelay = value
+    end,
+})
+
+CatchingTab:AddToggle({
+    Name = "Show Hitbox",
+    Default = false,
+    Callback = function(value)
+        showTransparencyState = value
+    end,
+})
+
+local function updateMagnetStatus()
+    local player = game:GetService("Players").LocalPlayer
+    local ball = workspace:FindFirstChild("Football") -- Assuming the ball is named "Football"
+
+    if ball then
+        if magEnabled then
+            if magnetDelayEnabled then
+                wait(magnetDelay)
+            end
+
+            ball.Size = Vector3.new(customDistance, customDistance, customDistance)
+            ball.Transparency = showTransparencyState and 0.8 or ball.Transparency
+        else
+            ball.Size = originalSizes[ball] or ball.Size
+            ball.Transparency = originalTransparencies[ball] or ball.Transparency
+        end
+    end
+end
+
+spawn(function()
+    while true do
+        updateMagnetStatus()
+        wait(1)
+    end
+end)
+
+-- Player Tab
+local PlayerTab = Window:MakeTab({
+    Name = "Player",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+PlayerTab:AddSlider({
+    Name = "Walkspeed",
+    Min = 20,
+    Max = 25,
+    Default = 20,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Speed",
+    Callback = function(value)
+        local player = game:GetService("Players").LocalPlayer
+        player.Character.Humanoid.WalkSpeed = value
+    end,
+})
+
+PlayerTab:AddSlider({
+    Name = "JumpPower",
+    Min = 50,
+    Max = 65,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Power",
+    Callback = function(value)
+        local player = game:GetService("Players").LocalPlayer
+        player.Character.Humanoid.JumpPower = value
+    end,
+})
+
+-- Info Tab
+local InfoTab = Window:MakeTab({
+    Name = "Info",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+InfoTab:AddLabel("Owner: Ozuya")
+InfoTab:AddLabel("Game: Football Fusion 2")
+
+OrionLib:Init()
