@@ -1,0 +1,331 @@
+-- Anti-Cheat Bypass for Solara with Focus on UI, Speed, JumpPower, and Magnets
+if game.PlaceId == 8204899140 then
+    local function BypassAntiCheat()
+        local Targets = {}
+        local UIFunc, SpeedFunc, JumpPowerFunc, MagnetFunc
+
+        -- Function to check equality of tables
+        local function TableEquality(x, y)
+            if #x ~= #y then
+                return false
+            end
+            for i, v in next, x do
+                if y[i] ~= v then
+                    return false
+                end
+            end
+            return true
+        end
+
+        -- Gather functions and tables for hooks
+        local function GatherFunctions()
+            for _, v in next, getgc(true) do
+                if type(v) == "function" then
+                    local ScriptTrace, Line = debug.info(v, "sl")
+                    
+                    -- Identify functions related to UI, Speed, JumpPower, and Magnets
+                    if string.find(ScriptTrace, "UI") then
+                        UIFunc = v
+                    elseif string.find(ScriptTrace, "SpeedFunction") then
+                        SpeedFunc = v
+                    elseif string.find(ScriptTrace, "JumpPowerFunction") then
+                        JumpPowerFunc = v
+                    elseif string.find(ScriptTrace, "MagnetFunction") then
+                        MagnetFunc = v
+                    end
+                end
+            end
+        end
+
+        -- Apply hooks to bypass anti-cheat
+        local function ApplyHooks()
+            -- Hook identified functions
+            if UIFunc then
+                hookfunction(UIFunc, function(...) return UIFunc(...) end)
+            end
+            if SpeedFunc then
+                hookfunction(SpeedFunc, function(...) return SpeedFunc(...) end)
+            end
+            if JumpPowerFunc then
+                hookfunction(JumpPowerFunc, function(...) return JumpPowerFunc(...) end)
+            end
+            if MagnetFunc then
+                hookfunction(MagnetFunc, function(...) return MagnetFunc(...) end)
+            end
+
+            -- Ensure the hooks are applied
+            task.wait(3)
+        end
+
+        -- Execute anti-cheat bypass
+        GatherFunctions()
+        ApplyHooks()
+    end
+
+    BypassAntiCheat()
+end
+
+-- Orion UI Integration
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({Name = "Tyrant Hub", HidePremium = false, SaveConfig = true, ConfigFolder = "TyrantHub"})
+
+-- Catching Tab
+local CatchingTab = Window:MakeTab({
+    Name = "Catching",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local magEnabled = false
+local customDistance = 10
+local magnetDelayEnabled = false
+local magnetDelay = 0
+local showTransparencyState = false
+local hitboxIndicator = nil  -- Store hitbox indicator
+local ballPredictionEnabled = false
+local predictionMarker = nil
+
+CatchingTab:AddSection({Name = "Magnets"})
+
+CatchingTab:AddToggle({
+    Name = "Magnets",
+    Default = false,
+    Callback = function(value)
+        magEnabled = value
+    end,
+})
+
+CatchingTab:AddSlider({
+    Name = "Magnets Range",
+    Min = 1,
+    Max = 50,
+    Default = 10,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 0.1,
+    ValueName = "Range",
+    Callback = function(value)
+        customDistance = value
+    end,
+})
+
+CatchingTab:AddToggle({
+    Name = "Magnets Delay",
+    Default = false,
+    Callback = function(value)
+        magnetDelayEnabled = value
+    end,
+})
+
+CatchingTab:AddSlider({
+    Name = "Magnets Delay",
+    Min = 0,
+    Max = 1,
+    Default = 0,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 0.1,
+    ValueName = "Delay",
+    Callback = function(value)
+        magnetDelay = value
+    end,
+})
+
+CatchingTab:AddToggle({
+    Name = "Show Hitbox",
+    Default = false,
+    Callback = function(value)
+        showTransparencyState = value
+        if hitboxIndicator then
+            hitboxIndicator.Transparency = showTransparencyState and 0.3 or 1
+        end
+    end,
+})
+
+CatchingTab:AddToggle({
+    Name = "Ball Prediction",
+    Default = false,
+    Callback = function(value)
+        ballPredictionEnabled = value
+        if predictionMarker then
+            predictionMarker:Destroy()
+            predictionMarker = nil
+        end
+    end,
+})
+
+local function updateMagnetStatus()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+
+    if character then
+        local ball = workspace:FindFirstChild("Football")
+        
+        if ball then
+            if magEnabled then
+                if magnetDelayEnabled then
+                    wait(magnetDelay)
+                end
+                ball.Size = Vector3.new(customDistance, customDistance, customDistance)
+
+                -- Make the ball move towards the player's hands
+                local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+                if hand then
+                    local direction = (hand.Position - ball.Position).Unit
+                    local force = Instance.new("BodyVelocity")
+                    force.Velocity = direction * 150  -- Increased pull strength
+                    force.MaxForce = Vector3.new(10000, 10000, 10000)
+                    force.Parent = ball
+                    game:GetService("Debris"):AddItem(force, 0.1)
+                end
+
+                -- Show hitbox
+                if showTransparencyState then
+                    if not hitboxIndicator then
+                        hitboxIndicator = Instance.new("Part")
+                        hitboxIndicator.Name = "HitboxIndicator"
+                        hitboxIndicator.Size = Vector3.new(customDistance, customDistance, customDistance)
+                        hitboxIndicator.Color = Color3.fromRGB(128, 128, 128)  -- Grey color
+                        hitboxIndicator.Anchored = true
+                        hitboxIndicator.CanCollide = false
+                        hitboxIndicator.Transparency = 0.3
+                        hitboxIndicator.Parent = ball
+                    else
+                        hitboxIndicator.Size = Vector3.new(customDistance, customDistance, customDistance)
+                        hitboxIndicator.Transparency = 0.3
+                    end
+                elseif hitboxIndicator then
+                    hitboxIndicator:Destroy()
+                    hitboxIndicator = nil
+                end
+            else
+                ball.Size = Vector3.new(1, 1, 1)
+                ball.Transparency = 1
+                if hitboxIndicator then
+                    hitboxIndicator:Destroy()
+                    hitboxIndicator = nil
+                end
+            end
+
+            -- Ball Prediction
+            if ballPredictionEnabled then
+                local velocity = ball:FindFirstChildOfClass("BodyVelocity")
+                if velocity then
+                    local predictedPosition = ball.Position + (velocity.Velocity * 10)  -- Adjust the multiplier for prediction range
+                    if not predictionMarker then
+                        predictionMarker = Instance.new("Part")
+                        predictionMarker.Name = "PredictionMarker"
+                        predictionMarker.Size = Vector3.new(1, 1, 1)
+                        predictionMarker.Color = Color3.fromRGB(255, 0, 0)  -- Red color
+                        predictionMarker.Anchored = true
+                        predictionMarker.CanCollide = false
+                        predictionMarker.Transparency = 0.5
+                        predictionMarker.Parent = workspace
+                    end
+                    predictionMarker.Position = predictedPosition
+                else
+                    if predictionMarker then
+                        predictionMarker:Destroy()
+                        predictionMarker = nil
+                    end
+                end
+            else
+                if predictionMarker then
+                    predictionMarker:Destroy()
+                    predictionMarker = nil
+                end
+            end
+        end
+    end
+end
+
+spawn(function()
+    while true do
+        updateMagnetStatus()
+        wait(1)
+    end
+end)
+
+-- Player Tab
+local PlayerTab = Window:MakeTab({
+    Name = "Player",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local walkspeedEnabled = false
+local jumpPowerEnabled = false
+local currentWalkspeed = 20
+local currentJumpPower = 50
+
+PlayerTab:AddToggle({
+    Name = "Walkspeed",
+    Default = false,
+    Callback = function(value)
+        walkspeedEnabled = value
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "Walkspeed",
+    Min = 20,
+    Max = 25,
+    Default = 20,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Speed",
+    Callback = function(value)
+        currentWalkspeed = value
+    end
+})
+
+PlayerTab:AddToggle({
+    Name = "JumpPower",
+    Default = false,
+    Callback = function(value)
+        jumpPowerEnabled = value
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "JumpPower",
+    Min = 50,
+    Max = 65,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Power",
+    Callback = function(value)
+        currentJumpPower = value
+    end
+})
+
+-- Info Tab
+local InfoTab = Window:MakeTab({
+    Name = "Info",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+InfoTab:AddSection({Name = "Details"})
+
+InfoTab:AddLabel("Owner: Ozuya")
+InfoTab:AddLabel("Game: Football Fusion 2")
+
+-- Apply Player Settings
+local function applyPlayerSettings()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = walkspeedEnabled and currentWalkspeed or 16
+            humanoid.JumpPower = jumpPowerEnabled and currentJumpPower or 50
+        end
+    end
+end
+
+spawn(function()
+    while true do
+        applyPlayerSettings()
+        wait(0.1)
+    end
+end)
