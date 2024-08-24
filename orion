@@ -1,0 +1,133 @@
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({Name = "Tyrant Hub", HidePremium = false, SaveConfig = true, ConfigFolder = "TyrantHubConfig"})
+
+-- Player Tab
+local PlayerTab = Window:MakeTab({
+    Name = "Player",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+PlayerTab:AddToggle({
+    Name = "Toggle Walkspeed",
+    Default = false,
+    Callback = function(value)
+        walkspeedEnabled = value
+        -- Handle Walkspeed Toggle
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "Walkspeed",
+    Min = 0,
+    Max = 45,
+    Default = 30,
+    Color = Color3.fromRGB(255,255,255),
+    Increment = 1,
+    ValueName = "Walkspeed",
+    Callback = function(value)
+        walkspeedValue = value
+        -- Update Walkspeed
+    end    
+})
+
+PlayerTab:AddToggle({
+    Name = "Toggle JumpPower",
+    Default = false,
+    Callback = function(value)
+        jumpPowerEnabled = value
+        -- Handle JumpPower Toggle
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "JumpPower",
+    Min = 50,
+    Max = 300,
+    Default = 50,
+    Color = Color3.fromRGB(255,255,255),
+    Increment = 1,
+    ValueName = "JumpPower",
+    Callback = function(value)
+        jumpPowerValue = value
+        -- Update JumpPower
+    end    
+})
+
+-- Catching Tab
+local CatchingTab = Window:MakeTab({
+    Name = "Catching",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+CatchingTab:AddToggle({
+    Name = "Toggle Magnets",
+    Default = false,
+    Callback = function(value)
+        magEnabled = value
+        -- Handle Magnet Toggle
+    end
+})
+
+CatchingTab:AddSlider({
+    Name = "Magnet Range",
+    Min = 1,
+    Max = 25,
+    Default = 10,
+    Color = Color3.fromRGB(255,255,255),
+    Increment = 1,
+    ValueName = "Magnet Range",
+    Callback = function(value)
+        customDistance = value
+        -- Update Magnet Range
+    end    
+})
+
+CatchingTab:AddToggle({
+    Name = "Show Hitbox",
+    Default = false,
+    Callback = function(value)
+        showTransparencyState = value
+        -- Handle ShowHitbox Toggle
+    end
+})
+
+-- Info Tab
+local InfoTab = Window:MakeTab({
+    Name = "Info",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+InfoTab:AddLabel("Owner: Ozuya")
+InfoTab:AddLabel("Game: Football Fusion 2")
+
+OrionLib:Init()
+
+-- Additional logic for features goes here
+
+local function updateMagnetStatus()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+
+    if character then
+        local left = character:FindFirstChild("CatchLeft")
+        local right = character:FindFirstChild("CatchRight")
+
+        if left and right then
+            if magEnabled then
+                if magnetDelayEnabled then
+                    wait(magnetDelay)
+                end
+
+                left.Size = Vector3.new(customDistance, customDistance, customDistance)
+                right.Size = Vector3.new(customDistance, customDistance, customDistance)
+                left.Transparency = showTransparencyState and 0.5 or 1
+                right.Transparency = showTransparencyState and 0.5 or 1
+            end
+        end
+    end
+end
+
+-- Call functions or set up any additional event connections here
