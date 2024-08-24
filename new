@@ -1,17 +1,3 @@
--- Ensure the game ID is correct
-local function checkGameID()
-    local expectedGameID = 8204899140
-    if game.PlaceId ~= expectedGameID then
-        warn("This script is intended for Football Fusion 2 only.")
-        return false
-    end
-    return true
-end
-
-if not checkGameID() then
-    return
-end
-
 -- Create a basic UI
 local function createBasicUI()
     local screenGui = Instance.new("ScreenGui")
