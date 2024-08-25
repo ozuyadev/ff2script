@@ -1,0 +1,154 @@
+-- Anti-Cheat Bypass for Solara
+if getgenv().tyrant then 
+    warn("tyrant is already executed") 
+    return 
+end
+getgenv().tyrant = true
+
+local function bypassAnticheat()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Handshake = ReplicatedStorage:FindFirstChild("CharacterSoundEvent")
+    if not Handshake then return end
+
+    local Hooks = {}
+    local HandshakeInts = {}
+
+    Hooks.__namecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local Method = getnamecallmethod()
+        local Args = {...}
+
+        if not checkcaller() and self == Handshake and Method == "fireServer" and string.find(Args[1], "AC") then
+            if #HandshakeInts == 0 then
+                HandshakeInts = {table.unpack(Args[2], 2, 18)}
+            else
+                for i, v in ipairs(HandshakeInts) do  
+                    Args[2][i + 1] = v
+                end
+            end
+        end
+
+        return Hooks.__namecall(self, ...)
+    end)
+
+    -- Wait for initial setup
+    task.wait()
+
+    -- Hook function replacements
+    for i, v in getgc() do
+        if typeof(v) == "function" and islclosure(v) then
+            if #getprotos(v) == 1 and table.find(getconstants(getproto(v, 1)), 4000001) then
+                hookfunction(v, function() end)
+            end
+        end
+    end
+end
+
+bypassAnticheat()
+
+-- Vape UI Integration
+local VapeURL = "https://raw.githubusercontent.com/dawid-scripts/UI-Libs/main/Vape.txt"
+
+local function loadVapeUI()
+    local Vape, success = nil, false
+    success, Vape = pcall(function()
+        return loadstring(game:HttpGet(VapeURL))()
+    end)
+    if not success or not Vape then
+        warn("Failed to load Vape UI from URL")
+        return
+    end
+    return Vape
+end
+
+local VapeUI = loadVapeUI()
+if VapeUI then
+    local Window, success = nil, false
+    success, Window = pcall(function() return VapeUI:CreateWindow("Football Fusion 2") end)
+    if not success or not Window then
+        warn("Failed to create Vape UI window")
+        return
+    end
+
+    -- Create Tabs
+    local function createTab(tabName, tabIcon, premiumOnly)
+        local success, tab = pcall(function()
+            return Window:MakeTab({
+                Name = tabName,
+                Icon = tabIcon,
+                PremiumOnly = premiumOnly
+            })
+        end)
+        if not success or not tab then
+            warn("Failed to create tab:", tabName)
+        end
+        return tab
+    end
+
+    -- Create "Catching" Tab
+    local CatchingTab = createTab("Catching", "rbxassetid://4483345998", false)
+    if CatchingTab then
+        -- Add elements to CatchingTab
+        CatchingTab:AddSection({Name = "Magnets"})
+        CatchingTab:AddToggle({
+            Name = "Magnets",
+            Default = false,
+            Callback = function(value) magEnabled = value end
+        })
+        CatchingTab:AddSlider({
+            Name = "Magnets Range",
+            Min = 1,
+            Max = 25,
+            Default = 10,
+            Color = Color3.fromRGB(255, 255, 255),
+            Increment = 0.1,
+            ValueName = "Range",
+            Callback = function(value) customDistance = value end
+        })
+        -- Additional elements as required
+    end
+
+    -- Create "Player" Tab
+    local PlayerTab = createTab("Player", "rbxassetid://4483345998", false)
+    if PlayerTab then
+        -- Add elements to PlayerTab
+        PlayerTab:AddToggle({
+            Name = "Enable Walkspeed",
+            Default = false,
+            Callback = function(value) walkspeedEnabled = value end
+        })
+        PlayerTab:AddSlider({
+            Name = "Walkspeed",
+            Min = 20,
+            Max = 23,
+            Default = 20,
+            Color = Color3.fromRGB(255, 255, 255),
+            Increment = 1,
+            ValueName = "Speed",
+            Callback = function(value) currentWalkspeed = value end
+        })
+        -- Additional elements as required
+    end
+
+    -- Create "Misc" Tab
+    local MiscTab = createTab("Misc", "rbxassetid://4483345998", false)
+    if MiscTab then
+        -- Add elements to MiscTab
+        MiscTab:AddToggle({
+            Name = "Follow Ball Carrier",
+            Default = false,
+            Callback = function(value) followBallCarrier = value end
+        })
+        -- Additional elements as required
+    end
+
+    -- Create "Info" Tab
+    local InfoTab = createTab("Info", "rbxassetid://4483345998", false)
+    if InfoTab then
+        -- Add elements to InfoTab
+        InfoTab:AddLabel("Owner: Ozuya")
+        InfoTab:AddLabel("Game: Football Fusion 2")
+    end
+
+else
+    warn("Failed to load Vape UI or Vape UI script is incorrect.")
+end
