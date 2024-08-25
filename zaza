@@ -1,0 +1,322 @@
+-- Anti-Cheat Bypass for Solara
+if getgenv().tyrant then 
+    warn("tyranthub is already executed") 
+    return 
+end
+getgenv().tyrant = true
+
+local function bypassAnticheat()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Handshake = ReplicatedStorage:FindFirstChild("CharacterSoundEvent")
+    if not Handshake then return end
+
+    local Hooks = {}
+    local HandshakeInts = {}
+
+    Hooks.__namecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local Method = getnamecallmethod()
+        local Args = {...}
+
+        if not checkcaller() and self == Handshake and Method == "fireServer" and string.find(Args[1], "AC") then
+            if #HandshakeInts == 0 then
+                HandshakeInts = {table.unpack(Args[2], 2, 18)}
+            else
+                for i, v in ipairs(HandshakeInts) do  
+                    Args[2][i + 1] = v
+                end
+            end
+        end
+
+        return Hooks.__namecall(self, ...)
+    end)
+
+    -- Wait for initial setup
+    task.wait()
+
+    -- Hook function replacements
+    for i, v in getgc() do
+        if typeof(v) == "function" and islclosure(v) then
+            if #getprotos(v) == 1 and table.find(getconstants(getproto(v, 1)), 4000001) then
+                hookfunction(v, function() end)
+            end
+        end
+    end
+end
+
+bypassAnticheat()
+
+-- Vape UI Integration
+local VapeURL = "https://raw.githubusercontent.com/dawid-scripts/UI-Libs/main/Vape.txt"
+local Vape, success = nil, false
+
+local function loadVapeUI()
+    success, Vape = pcall(function()
+        return loadstring(game:HttpGet(VapeURL))()
+    end)
+    if not success or not Vape then
+        warn("Failed to load Vape UI from URL")
+        return
+    end
+    return Vape
+end
+
+local VapeUI = loadVapeUI()
+if VapeUI then
+    local success, createWindow = pcall(function() return VapeUI:CreateWindow("Football Fusion 2") end)
+    if not success then
+        warn("Failed to create Vape UI window")
+        return
+    end
+
+    local Window = createWindow
+
+    -- Catching Tab
+    local CatchingTab = Window:MakeTab({
+        Name = "Catching",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    local magEnabled = false
+    local customDistance = 10
+    local magnetDelayEnabled = false
+    local magnetDelay = 0
+    local showTransparencyState = false
+    local hitboxIndicator = nil
+    local ballPredictionEnabled = false
+    local predictionMarker = nil
+
+    CatchingTab:AddSection({Name = "Magnets"})
+
+    CatchingTab:AddToggle({
+        Name = "Magnets",
+        Default = false,
+        Callback = function(value)
+            magEnabled = value
+        end,
+    })
+
+    CatchingTab:AddSlider({
+        Name = "Magnets Range",
+        Min = 1,
+        Max = 25,
+        Default = 10,
+        Color = Color3.fromRGB(255, 255, 255),
+        Increment = 0.1,
+        ValueName = "Range",
+        Callback = function(value)
+            customDistance = value
+        end,
+    })
+
+    CatchingTab:AddToggle({
+        Name = "Magnets Delay",
+        Default = false,
+        Callback = function(value)
+            magnetDelayEnabled = value
+        end,
+    })
+
+    CatchingTab:AddSlider({
+        Name = "Magnets Delay",
+        Min = 0,
+        Max = 1,
+        Default = 0,
+        Color = Color3.fromRGB(255, 255, 255),
+        Increment = 0.1,
+        ValueName = "Delay",
+        Callback = function(value)
+            magnetDelay = value
+        end,
+    })
+
+    CatchingTab:AddToggle({
+        Name = "Show Hitbox",
+        Default = false,
+        Callback = function(value)
+            showTransparencyState = value
+            if hitboxIndicator then
+                hitboxIndicator.Transparency = showTransparencyState and 0.3 or 1
+            end
+        end,
+    })
+
+    CatchingTab:AddToggle({
+        Name = "Ball Prediction",
+        Default = false,
+        Callback = function(value)
+            ballPredictionEnabled = value
+            if predictionMarker then
+                predictionMarker:Destroy()
+                predictionMarker = nil
+            end
+        end,
+    })
+
+    local function updateMagnetStatus()
+        local player = game:GetService("Players").LocalPlayer
+        local character = player.Character
+
+        if character then
+            local ball = workspace:FindFirstChild("Football")
+            
+            if ball then
+                if magEnabled then
+                    if magnetDelayEnabled then
+                        wait(magnetDelay)
+                    end
+                    ball.Size = Vector3.new(customDistance, customDistance, customDistance)
+
+                    local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+                    if hand then
+                        local direction = (hand.Position - ball.Position).Unit
+                        local force = Instance.new("BodyVelocity")
+                        force.Velocity = direction * 150
+                        force.MaxForce = Vector3.new(10000, 10000, 10000)
+                        force.Parent = ball
+                        game:GetService("Debris"):AddItem(force, 0.1)
+                    end
+
+                    if showTransparencyState then
+                        if not hitboxIndicator then
+                            hitboxIndicator = Instance.new("Part")
+                            hitboxIndicator.Name = "HitboxIndicator"
+                            hitboxIndicator.Size = Vector3.new(customDistance, customDistance, customDistance)
+                            hitboxIndicator.Color = Color3.fromRGB(128, 128, 128)
+                            hitboxIndicator.Anchored = true
+                            hitboxIndicator.CanCollide = false
+                            hitboxIndicator.Transparency = 0.3
+                            hitboxIndicator.Parent = ball
+                        else
+                            hitboxIndicator.Size = Vector3.new(customDistance, customDistance, customDistance)
+                            hitboxIndicator.Transparency = 0.3
+                        end
+                    elseif hitboxIndicator then
+                        hitboxIndicator:Destroy()
+                        hitboxIndicator = nil
+                    end
+                else
+                    ball.Size = Vector3.new(1, 1, 1)
+                    ball.Transparency = 1
+                    if hitboxIndicator then
+                        hitboxIndicator:Destroy()
+                        hitboxIndicator = nil
+                    end
+                end
+
+                if ballPredictionEnabled then
+                    local velocity = ball:FindFirstChildOfClass("BodyVelocity")
+                    if velocity then
+                        local predictedPosition = ball.Position + (velocity.Velocity * 10)
+                        if not predictionMarker then
+                            predictionMarker = Instance.new("Part")
+                            predictionMarker.Name = "PredictionMarker"
+                            predictionMarker.Size = Vector3.new(1, 1, 1)
+                            predictionMarker.Color = Color3.fromRGB(255, 0, 0)
+                            predictionMarker.Anchored = true
+                            predictionMarker.CanCollide = false
+                            predictionMarker.Transparency = 0.5
+                            predictionMarker.Parent = workspace
+                        end
+                        predictionMarker.Position = predictedPosition
+                    else
+                        if predictionMarker then
+                            predictionMarker:Destroy()
+                            predictionMarker = nil
+                        end
+                    end
+                else
+                    if predictionMarker then
+                        predictionMarker:Destroy()
+                        predictionMarker = nil
+                    end
+                end
+            end
+        end
+    end
+
+    spawn(function()
+        while true do
+            updateMagnetStatus()
+            wait(1)
+        end
+    end)
+
+    -- Player Tab
+    local PlayerTab = Window:MakeTab({
+        Name = "Player",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    local walkspeedEnabled = false
+    local jumpPowerEnabled = false
+    local currentWalkspeed = 16
+    local currentJumpPower = 50
+
+    PlayerTab:AddToggle({
+        Name = "Enable Walkspeed",
+        Default = false,
+        Callback = function(value)
+            walkspeedEnabled = value
+        end
+    })
+
+    PlayerTab:AddSlider({
+        Name = "Walkspeed",
+        Min = 16,
+        Max = 23,
+        Default = 16,
+        Color = Color3.fromRGB(255, 255, 255),
+        Increment = 1,
+        ValueName = "Speed",
+        Callback = function(value)
+            currentWalkspeed = value
+        end
+    })
+
+    PlayerTab:AddToggle({
+        Name = "Enable JumpPower",
+        Default = false,
+        Callback = function(value)
+            jumpPowerEnabled = value
+        end
+    })
+
+    PlayerTab:AddSlider({
+        Name = "JumpPower",
+        Min = 50,
+        Max = 60,
+        Default = 50,
+        Color = Color3.fromRGB(255, 255, 255),
+        Increment = 1,
+        ValueName = "Power",
+        Callback = function(value)
+            currentJumpPower = value
+        end
+    })
+
+    local function applyPlayerSettings()
+        local player = game:GetService("Players").LocalPlayer
+        local character = player.Character
+
+        if character then
+            if walkspeedEnabled then
+                character.Humanoid.WalkSpeed = currentWalkspeed
+            end
+
+            if jumpPowerEnabled then
+                character.Humanoid.JumpPower = currentJumpPower
+            end
+        end
+    end
+
+    spawn(function()
+        while true do
+            applyPlayerSettings()
+            wait(1)
+        end
+    end)
+else
+    warn("Failed to load Vape UI or Vape UI script is incorrect.")
+end
