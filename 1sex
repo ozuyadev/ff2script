@@ -1,0 +1,353 @@
+-- Load the Zypher UI library
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/teppyboy/RbxScripts/master/Misc/UI_Libraries/Zypher/Library.lua"))()
+
+-- Create the main window
+local main = library:CreateMain({
+    projName = "Tyrant Hub",
+    Resizable = true,
+    MinSize = UDim2.new(0, 400, 0, 400),
+    MaxSize = UDim2.new(0, 750, 0, 500),
+})
+
+-- Create tabs
+local catchingCategory = main:CreateCategory("Catching")
+local playerCategory = main:CreateCategory("Player")
+local miscCategory = main:CreateCategory("Misc")
+
+-- Create Catching tab
+local catchingSection = catchingCategory:CreateSection("Catching Features")
+
+-- Variables for Catching tab
+local magnetEnabled = false
+local autoCatchEnabled = false
+local magnetSize = 10 -- Default value for magnet size
+local autoCatchRadius = 10 -- Default value for auto-catch radius
+local showHitboxEnabled = false -- Variable for show hitbox feature
+local hitbox -- Variable to hold the hitbox instance
+
+-- Magnets
+catchingSection:Create(
+    "Toggle",
+    "Magnets",
+    function(state)
+        magnetEnabled = state
+    end,
+    {
+        default = false
+    }
+)
+
+-- Magnet Slider
+catchingSection:Create(
+    "Slider",
+    "Magnet Size",
+    function(value)
+        magnetSize = value
+    end,
+    {
+        min = 1,
+        max = 50,
+        default = 10
+    }
+)
+
+-- Auto-Catch
+catchingSection:Create(
+    "Toggle",
+    "Auto-Catch",
+    function(state)
+        autoCatchEnabled = state
+    end,
+    {
+        default = false
+    }
+)
+
+-- Auto-Catch Slider
+catchingSection:Create(
+    "Slider",
+    "Auto-Catch Radius",
+    function(value)
+        autoCatchRadius = value
+    end,
+    {
+        min = 1,
+        max = 15,
+        default = 10
+    }
+)
+
+-- Show Hitbox
+catchingSection:Create(
+    "Toggle",
+    "Show Hitbox",
+    function(state)
+        showHitboxEnabled = state
+        if hitbox then
+            hitbox:Destroy()
+            hitbox = nil
+        end
+
+        if showHitboxEnabled then
+            local function updateHitbox()
+                local ball = workspace:FindFirstChild("Football")
+                if ball then
+                    if not hitbox then
+                        hitbox = Instance.new("Part")
+                        hitbox.Size = Vector3.new(magnetSize * 1.5, magnetSize * 1.5, magnetSize * 1.5)
+                        hitbox.Transparency = 0.5 -- Adjusted transparency
+                        hitbox.Anchored = true
+                        hitbox.CanCollide = false
+                        hitbox.Parent = workspace
+                    end
+                    hitbox.CFrame = ball.CFrame
+                end
+            end
+
+            -- Update the hitbox every frame
+            game:GetService("RunService").Stepped:Connect(function()
+                if showHitboxEnabled then
+                    updateHitbox()
+                end
+            end)
+        end
+    end,
+    {
+        default = false
+    }
+)
+
+-- Create Player tab
+local playerSection = playerCategory:CreateSection("Player Features")
+
+-- Variables for Player tab
+local walkspeedEnabled = false
+local jumpPowerEnabled = false
+local walkspeedValue = 20
+local jumpPowerValue = 50
+
+-- Walkspeed Toggle and Slider
+playerSection:Create(
+    "Toggle",
+    "Walkspeed",
+    function(state)
+        walkspeedEnabled = state
+        local humanoid = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            if state then
+                humanoid.WalkSpeed = walkspeedValue
+            else
+                humanoid.WalkSpeed = 16 -- Default value
+            end
+        end
+    end,
+    {
+        default = false
+    }
+)
+
+playerSection:Create(
+    "Slider",
+    "Walkspeed Value",
+    function(value)
+        walkspeedValue = value
+        local humanoid = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if walkspeedEnabled and humanoid then
+            humanoid.WalkSpeed = walkspeedValue
+        end
+    end,
+    {
+        min = 20,
+        max = 23,
+        default = 20
+    }
+)
+
+-- JumpPower Toggle and Slider
+playerSection:Create(
+    "Toggle",
+    "JumpPower",
+    function(state)
+        jumpPowerEnabled = state
+        local humanoid = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            if state then
+                humanoid.JumpPower = jumpPowerValue
+            else
+                humanoid.JumpPower = 50 -- Default value
+            end
+        end
+    end,
+    {
+        default = false
+    }
+)
+
+playerSection:Create(
+    "Slider",
+    "JumpPower Value",
+    function(value)
+        jumpPowerValue = value
+        local humanoid = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if jumpPowerEnabled and humanoid then
+            humanoid.JumpPower = jumpPowerValue
+        end
+    end,
+    {
+        min = 50,
+        max = 60,
+        default = 50
+    }
+)
+
+-- Create Misc tab
+local miscSection = miscCategory:CreateSection("Misc Features")
+
+-- Ball Landing Prediction
+local ballLandingPredictionEnabled = false
+local predictionBeam
+local predictionEndTime
+
+local function beamProjectile(g, v0, x0, t1)
+    local c = 0.5 * 0.5 * 0.5
+    local p3 = 0.5 * g * t1 * t1 + v0 * t1 + x0
+    local p2 = p3 - (g * t1 * t1 + v0 * t1) / 3
+    local p1 = (c * g * t1 * t1 + 0.5 * v0 * t1 + x0 - c * (x0 + p3)) / (3 * c) - p2
+
+    local curve0 = (x0 - p3).magnitude
+    local curve1 = (p2 - p3).magnitude
+
+    local b = (x0 - p3).unit
+    local r1 = (p1 - x0).unit
+    local u1 = r1:Cross(b).unit
+    local r2 = (p2 - p3).unit
+    local u2 = r2:Cross(b).unit
+    b = u1:Cross(r1).unit
+
+    local cf1 = CFrame.new(
+        x0.x, x0.y, x0.z,
+        r1.x, u1.x, b.x,
+        r1.y, u1.y, b.y,
+        r1.z, u1.z, b.z
+    )
+
+    local cf2 = CFrame.new(
+        p3.x, p3.y, p3.z,
+        r2.x, u2.x, b.x,
+        r2.y, u2.y, b.y,
+        r2.z, u2.z, b.z
+    )
+
+    return curve0, -curve1, cf1, cf2
+end
+
+local predictionColor = Color3.fromRGB(255, 255, 255)
+local eventConnection
+
+local function startPrediction()
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+
+    local function onBallAdded(b)
+        if b.Name == "Football" and b:IsA("BasePart") then
+            task.wait()
+            local vel = b.Velocity
+            local pos = b.Position
+            local c0, c1, cf1, cf2 = beamProjectile(Vector3.new(0, -28, 0), vel, pos, 10)
+            local beam = Instance.new("Beam")
+            local a0 = Instance.new("Attachment")
+            local a1 = Instance.new("Attachment")
+            beam.Color = ColorSequence.new(predictionColor)
+            beam.Transparency = NumberSequence.new(0, 0)
+            beam.CurveSize0 = c0
+            beam.CurveSize1 = c1
+            beam.Name = "Hitbox"
+            beam.Parent = workspace.Terrain
+            beam.Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 1),
+                NumberSequenceKeypoint.new(0.01, 0),
+                NumberSequenceKeypoint.new(1, 0),
+                NumberSequenceKeypoint.new(1, 0.01),
+            })
+            beam.Segments = 1750
+            a0.Parent = workspace.Terrain
+            a1.Parent = workspace.Terrain
+            a0.CFrame = a0.Parent.CFrame:Inverse() * cf1
+            a1.CFrame = a1.Parent.CFrame:Inverse() * cf2
+            beam.Attachment0 = a0
+            beam.Attachment1 = a1
+
+            -- Remove the beam after 3 seconds
+            task.wait(3)
+            beam:Destroy()
+        end
+    end
+
+    workspace.ChildAdded:Connect(onBallAdded)
+end
+
+miscSection:Create(
+    "Toggle",
+    "Ball Prediction",
+    function(state)
+        ballLandingPredictionEnabled = state
+        if ballLandingPredictionEnabled then
+            startPrediction()
+        else
+            if eventConnection then
+                eventConnection:Disconnect()
+            end
+        end
+    end,
+    {
+        default = false
+    }
+)
+
+-- Auto-Catch Feature
+local autoCatchEnabled = false
+local triggerDistance = 10
+
+local function checkProximity(ball)
+    local hasJumped = false
+
+    while true do
+        local distance = (ball.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+
+        if distance < triggerDistance and not hasJumped then
+            if humanoid then
+                humanoid.Jump = true
+                hasJumped = true
+                break
+            end
+        end
+
+        if ball.Position.Y < 0 then
+            break
+        end
+
+        wait(0.1)
+    end
+end
+
+local function autoCatch()
+    if autoCatchEnabled then
+        workspace.ChildAdded:Connect(function(b)
+            if b.Name == "Football" and b:IsA("BasePart") then
+                checkProximity(b)
+            end
+        end)
+    end
+end
+
+catchingSection:FindFirstChild("Auto-Catch").Changed:Connect(function(newState)
+    autoCatchEnabled = newState
+    autoCatch()
+end)
+
+catchingSection:FindFirstChild("Auto-Catch Radius").Changed:Connect(function(newValue)
+    triggerDistance = newValue
+end)
+
+-- Connect existing toggles and sliders to their functionalities
