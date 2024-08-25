@@ -1,0 +1,198 @@
+-- Load the Zypher UI library
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/GhostDuckyy/UI-Libraries/blob/main/Zypher/source.lua"))()
+
+-- Create the main window
+local main = library:CreateMain({
+    projName = "Tyrant Hub",
+    Resizable = true,
+    MinSize = UDim2.new(0, 400, 0, 400),
+    MaxSize = UDim2.new(0, 750, 0, 500),
+})
+
+-- Create the Catching tab
+local catchingCategory = main:CreateCategory("Catching")
+local catchingSection = catchingCategory:CreateSection("Catching Features")
+
+local magnetRadius = 1
+local autoCatchRadius = 1
+local magEnabled = false
+local autoCatchEnabled = false
+local hitboxIndicator = nil
+
+catchingSection:Create(
+    "Toggle",
+    "Magnet",
+    function(state)
+        magEnabled = state
+    end,
+    {default = false}
+)
+
+catchingSection:Create(
+    "Slider",
+    "Magnet Slider",
+    function(value)
+        magnetRadius = value
+        -- Update magnet hitbox size
+    end,
+    {
+        min = 1,
+        max = 25,
+        default = 1
+    }
+)
+
+catchingSection:Create(
+    "Toggle",
+    "Auto-Catch",
+    function(state)
+        autoCatchEnabled = state
+    end,
+    {default = false}
+)
+
+catchingSection:Create(
+    "Slider",
+    "Auto-Catch Slider",
+    function(value)
+        autoCatchRadius = value
+    end,
+    {
+        min = 1,
+        max = 25,
+        default = 1
+    }
+)
+
+-- Create the Player tab
+local playerCategory = main:CreateCategory("Player")
+local playerSection = playerCategory:CreateSection("Player Features")
+
+local walkSpeedEnabled = false
+local jumpPowerEnabled = false
+local walkSpeed = 20
+local jumpPower = 50
+
+playerSection:Create(
+    "Toggle",
+    "Walkspeed",
+    function(state)
+        walkSpeedEnabled = state
+        local player = game.Players.LocalPlayer
+        if player and player.Character then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = walkSpeedEnabled and walkSpeed or 16
+            end
+        end
+    end,
+    {default = false}
+)
+
+playerSection:Create(
+    "Slider",
+    "Walkspeed Slider",
+    function(value)
+        walkSpeed = value
+        if walkSpeedEnabled then
+            local player = game.Players.LocalPlayer
+            if player and player.Character then
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = walkSpeed
+                end
+            end
+        end
+    end,
+    {
+        min = 20,
+        max = 23,
+        default = 20
+    }
+)
+
+playerSection:Create(
+    "Toggle",
+    "JumpPower",
+    function(state)
+        jumpPowerEnabled = state
+        local player = game.Players.LocalPlayer
+        if player and player.Character then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.JumpPower = jumpPowerEnabled and jumpPower or 50
+            end
+        end
+    end,
+    {default = false}
+)
+
+playerSection:Create(
+    "Slider",
+    "JumpPower Slider",
+    function(value)
+        jumpPower = value
+        if jumpPowerEnabled then
+            local player = game.Players.LocalPlayer
+            if player and player.Character then
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.JumpPower = jumpPower
+                end
+            end
+        end
+    end,
+    {
+        min = 50,
+        max = 60,
+        default = 50
+    }
+)
+
+-- Functions for handling Magnet and Auto-Catch
+local function checkMagnet()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if character then
+        local ball = workspace:FindFirstChild("Football")
+        if ball and magEnabled then
+            -- Extend the ball's hitbox
+            ball.Size = Vector3.new(magnetRadius, magnetRadius, magnetRadius)
+            
+            local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+            if hand then
+                local direction = (hand.Position - ball.Position).Unit
+                local force = Instance.new("BodyVelocity")
+                force.Velocity = direction * 500
+                force.MaxForce = Vector3.new(50000, 50000, 50000)
+                force.Parent = ball
+                game:GetService("Debris"):AddItem(force, 0.1)
+            end
+        end
+    end
+end
+
+local function checkAutoCatch()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if character then
+        local ball = workspace:FindFirstChild("Football")
+        if ball and autoCatchEnabled then
+            local ballPosition = ball.Position
+            local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+            if hand then
+                local distance = (ballPosition - hand.Position).magnitude
+                if distance < autoCatchRadius then
+                    -- Simulate click to catch the ball
+                    game:GetService("Players").LocalPlayer.MouseClick()
+                end
+            end
+        end
+    end
+end
+
+-- Connect the functions to an appropriate event or loop
+game:GetService("RunService").RenderStepped:Connect(function()
+    checkMagnet()
+    checkAutoCatch()
+end)
