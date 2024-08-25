@@ -1,0 +1,292 @@
+-- Anti-Cheat Bypass
+print('Initializing AC Bypass!')
+
+local Players = cloneref(game:GetService("Players"))
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+local RunService = cloneref(game:GetService("RunService"))
+local UserInputService = cloneref(game:GetService("UserInputService"))
+local Teams = cloneref(game:GetService("Teams"))
+local TweenService = cloneref(game:GetService("TweenService"))
+local Stats = cloneref(game:GetService("Stats"))
+
+if game.PlaceId ~= 8206123457 or game.PlaceId == 8204899140 then
+    -- Made by Unlimited, Modified/Updated by NG/Johan Peterson
+
+    local Player = Players.LocalPlayer
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+    local HRP = Character and Character:FindFirstChild("HumanoidRootPart")
+    local Hooks = {}
+    local HandshakeArgs = nil
+    local Remote = ReplicatedStorage:WaitForChild("Remotes").CharacterSoundEvent
+    local ACString = nil
+
+    -- os.clock hook
+    local RandomNumber = math.random(1e3, 1e5)
+
+    Hooks.Clock = hookfunction(os.clock, function(...)
+        return Hooks.Clock(...) + RandomNumber
+    end)
+
+    -- namecall hook
+    Hooks.Namecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local Method = getnamecallmethod()
+        local Args = {...}
+
+        if not checkcaller() and self == Remote and (Method == "FireServer" or Method == "fireServer") and string.find(Args[1], "AC") then
+            if not HandshakeArgs then
+                if type(Args[2]) == "table" and #Args[2] == 19 then
+                    ACString = Args[1]
+                    HandshakeArgs = Args[2]
+                end
+            else
+                return coroutine.yield()
+            end
+        end
+
+        return Hooks.Namecall(self, ...)
+    end)
+
+    while not ACString and not HandshakeArgs do
+        task.wait()
+    end
+
+    print("Found handshake arguments.")
+
+    task.wait(3)
+
+    for _, v in pairs(getgc()) do
+        if type(v) == "function" then
+            if getinfo(v).source:find("PlayerModule.LocalScript") then
+                hookfunction(v, function() end)
+            end
+        end
+    end
+
+    print("Hooked all anticheat functions.")
+
+    local ReplicateHandshake = function()
+        return Remote:FireServer(ACString, HandshakeArgs, nil)
+    end
+
+    task.spawn(function()
+        while task.wait(0.4) do
+            local Success, Error = pcall(ReplicateHandshake)
+
+            if not Success then
+                warn("Bypass timed out.")
+                task.wait(20)
+                Player:Kick("Bypass timed out.")
+                return
+            end
+        end
+    end)
+
+    print("Replicated handshake.")
+end
+
+task.wait()
+
+print('Done! Now Loading')
+
+-- Orion UI Setup
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/GhostDuckyy/UI-Libraries/main/Orion/source.lua", true))()
+local Window = OrionLib:MakeWindow({Name = "Orion UI", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionConfigs"})
+
+-- Tab 1: Catching
+local CatchingTab = Window:MakeTab({
+    Name = "Catching",
+    Icon = "rbxassetid://6026568198",
+    PremiumOnly = false
+})
+
+-- Define magnet strength
+local magnetStrength = 10
+
+-- Function to update magnet strength
+local function updateMagnetStrength(strength)
+    magnetStrength = strength
+    print("Magnet Strength Set to: " .. tostring(magnetStrength))
+end
+
+-- Function to auto-catch the ball
+local function autoCatch()
+    local ball = game.Workspace:FindFirstChild("Football") -- Change this as needed
+    if ball and ball:IsA("BasePart") then
+        local ballPos = ball.Position
+        local playerPos = HRP.Position
+        local distance = (ballPos - playerPos).magnitude
+        if distance <= magnetStrength then
+            -- Apply force to pull the ball towards player
+            local direction = (playerPos - ballPos).unit
+            ball.Velocity = direction * (magnetStrength - distance) * 0.5
+        end
+    end
+end
+
+CatchingTab:AddButton({
+    Name = "Enable Auto Catch",
+    Callback = function()
+        autoCatch()
+    end
+})
+
+CatchingTab:AddSlider({
+    Name = "Magnet Strength",
+    Min = 1,
+    Max = 50,
+    Default = 10,
+    Increment = 1,
+    Callback = function(value)
+        updateMagnetStrength(value)
+    end
+})
+
+CatchingTab:AddToggle({
+    Name = "Show Magnet Hitbox",
+    Default = false,
+    Callback = function(Status)
+        print("Show Magnet Hitbox: " .. tostring(Status))
+    end
+})
+
+-- Auto-catch feature
+local autoCatchEnabled = false
+local catchRadius = 10
+
+-- Function to enable/disable auto-catch
+local function setAutoCatch(enabled)
+    autoCatchEnabled = enabled
+    print("Auto-Catch Enabled: " .. tostring(autoCatchEnabled))
+end
+
+-- Function to update catch radius
+local function updateCatchRadius(radius)
+    catchRadius = radius
+    print("Catch Radius Set to: " .. tostring(catchRadius))
+end
+
+-- Auto-catch loop
+RunService.Heartbeat:Connect(function()
+    if autoCatchEnabled then
+        local ball = game.Workspace:FindFirstChild("Football") -- Change this as needed
+        if ball and ball:IsA("BasePart") then
+            local ballPos = ball.Position
+            local playerPos = HRP.Position
+            local distance = (ballPos - playerPos).magnitude
+            if distance <= catchRadius then
+                -- Click to catch the ball
+                UserInputService.InputBegan:Connect(function(Input)
+                    if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        -- Simulate mouse click
+                        print("Clicking to catch the ball")
+                    end
+                end)
+            end
+        end
+    end
+end)
+
+CatchingTab:AddToggle({
+    Name = "Enable Auto-Catch",
+    Default = false,
+    Callback = function(Status)
+        setAutoCatch(Status)
+    end
+})
+
+CatchingTab:AddSlider({
+    Name = "Catch Radius",
+    Min = 1,
+    Max = 25,
+    Default = 10,
+    Increment = 1,
+    Callback = function(value)
+        updateCatchRadius(value)
+    end
+})
+
+-- Tab 2: Player
+local PlayerTab = Window:MakeTab({
+    Name = "Player",
+    Icon = "rbxassetid://6022668945",
+    PremiumOnly = false
+})
+
+PlayerTab:AddSlider({
+    Name = "Walkspeed",
+    Min = 10,
+    Max = 50,
+    Default = 20,
+    Increment = 1,
+    Callback = function(value)
+        print("Walkspeed Set to: " .. tostring(value))
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "JumpPower",
+    Min = 20,
+    Max = 100,
+    Default = 50,
+    Increment = 1,
+    Callback = function(value)
+        print("JumpPower Set to: " .. tostring(value))
+    end
+})
+
+-- Tab 3: Misc
+local MiscTab = Window:MakeTab({
+    Name = "Misc",
+    Icon = "rbxassetid://6022668945",
+    PremiumOnly = false
+})
+
+-- Function to follow ball carrier
+local function followBallCarrier()
+    local ballCarrier = game.Workspace:FindFirstChild("BallCarrier") -- Change this as needed
+    if ballCarrier and ballCarrier:IsA("Model") then
+        HRP.CFrame = ballCarrier.PrimaryPart.CFrame
+    end
+end
+
+-- Function to predict ball landing
+local function ballLandingPrediction()
+    local ball = game.Workspace:FindFirstChild("Football") -- Change this as needed
+    if ball and ball:IsA("BasePart") then
+        local ballPos = ball.Position
+        -- Simple prediction: assume constant speed and direction
+        local prediction = ballPos + (ball.Velocity * 5) -- Adjust factor as needed
+        print("Predicted Landing Position: " .. tostring(prediction))
+    end
+end
+
+MiscTab:AddButton({
+    Name = "Follow Ball Carrier",
+    Callback = function()
+        followBallCarrier()
+    end
+})
+
+MiscTab:AddButton({
+    Name = "Ball Landing Prediction",
+    Callback = function()
+        ballLandingPrediction()
+    end
+})
+
+-- Tab 4: Info
+local InfoTab = Window:MakeTab({
+    Name = "Info",
+    Icon = "rbxassetid://6022668945",
+    PremiumOnly = false
+})
+
+InfoTab:AddLabel({
+    Name = "Owner: Ozuya"
+})
+
+InfoTab:AddLabel({
+    Name = "Game: Football Fusion 2"
+})
+
+print('Script Loaded Successfully!')
