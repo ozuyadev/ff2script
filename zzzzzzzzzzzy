@@ -1,0 +1,133 @@
+-- Load the Zypher UI library
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/teppyboy/RbxScripts/master/Misc/UI_Libraries/Zypher/Library.lua"))()
+
+-- Create the main window
+local main = library:CreateMain({
+    projName = "Tyrant Hub",
+    Resizable = true,
+    MinSize = UDim2.new(0, 400, 0, 400),
+    MaxSize = UDim2.new(0, 750, 0, 500),
+})
+
+-- Create the Catching category
+local catchingCategory = main:CreateCategory("Catching")
+
+-- Create a section within the Catching category
+local catchingSection = catchingCategory:CreateSection("Catching Features")
+
+-- Variables to store feature states
+local magnetRadius = 1
+local autoCatchRadius = 1
+local magEnabled = true
+local hitboxIndicator = nil
+
+-- Magnet Feature
+catchingSection:Create(
+    "Textlabel",
+    "Magnet Feature"
+)
+
+catchingSection:Create(
+    "Slider",
+    "Magnet Slider",
+    function(value)
+        magnetRadius = value
+        -- Update the magnet feature's radius
+    end,
+    {
+        min = 1,
+        max = 25,
+        default = 1,
+    }
+)
+
+-- Auto-Catch Feature
+catchingSection:Create(
+    "Textlabel",
+    "Auto-Catch Feature"
+)
+
+catchingSection:Create(
+    "Slider",
+    "Auto-Catch Slider",
+    function(value)
+        autoCatchRadius = value
+        -- Update the auto-catch feature's radius
+    end,
+    {
+        min = 1,
+        max = 25,
+        default = 1,
+    }
+)
+
+-- Function to update magnet status
+local function updateMagnetStatus()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+
+    if character then
+        local ball = workspace:FindFirstChild("Football")
+
+        if ball then
+            if magEnabled then
+                -- Adjust ball size for the magnet effect
+                ball.Size = Vector3.new(magnetRadius, magnetRadius, magnetRadius)
+
+                -- Make the ball move towards the player's hands
+                local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+                if hand then
+                    local direction = (hand.Position - ball.Position).Unit
+                    local force = Instance.new("BodyVelocity")
+                    force.Velocity = direction * 500  -- Adjust this value to control the pull strength
+                    force.MaxForce = Vector3.new(50000, 50000, 50000)
+                    force.Parent = ball
+                    game:GetService("Debris"):AddItem(force, 0.1)
+                end
+
+                -- Show hitbox if needed
+                if hitboxIndicator then
+                    hitboxIndicator.Size = Vector3.new(magnetRadius, magnetRadius, magnetRadius)
+                end
+            else
+                -- Reset ball size if magnet is disabled
+                ball.Size = Vector3.new(1, 1, 1)
+                ball.Transparency = 1
+                if hitboxIndicator then
+                    hitboxIndicator:Destroy()
+                    hitboxIndicator = nil
+                end
+            end
+        end
+    end
+end
+
+-- Function to automatically catch the ball if within radius
+local function checkAutoCatch()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character then return end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    -- Find the ball (replace "Football" with the actual ball name in the game)
+    local ball = workspace:FindFirstChild("Football")
+    if not ball then return end
+
+    local ballPosition = ball.Position
+    local playerPosition = humanoidRootPart.Position
+    local distance = (ballPosition - playerPosition).magnitude
+
+    -- Simulate click to catch the ball if within radius
+    if distance < autoCatchRadius then
+        -- Replace with actual implementation to simulate a click or catch the ball
+    end
+end
+
+-- Connect the functions to an appropriate event or loop
+-- For example, you might want to run these checks continuously
+game:GetService("RunService").RenderStepped:Connect(function()
+    updateMagnetStatus()
+    checkAutoCatch()
+end)
