@@ -1,0 +1,363 @@
+-- Anti-Cheat Bypass for Solara
+if getgenv().tyrant then 
+    warn("tyranthub is already executed") 
+    return 
+end
+getgenv().tyrant = true
+
+print('Initializing AC Bypass!')
+
+--// Services
+local Players = cloneref(game:GetService("Players"))
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+local RunService = cloneref(game:GetService("RunService"))
+local UserInputService = cloneref(game:GetService("UserInputService"))
+local Teams = cloneref(game:GetService("Teams"))
+local TweenService = cloneref(game:GetService("TweenService"))
+local Stats = cloneref(game:GetService("Stats"))
+
+if game.PlaceId ~= 8206123457 or game.PlaceId == 8204899140 then
+    --&gt; Made by Unlimited, Modified/Updated by NG/Johan Peterson
+
+    --// Variables
+    local Player = Players.LocalPlayer
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+    local HRP = Character and Character:FindFirstChild("HumanoidRootPart")
+    local Hooks = {}
+    local HandshakeArgs = nil
+    local Remote = ReplicatedStorage:WaitForChild("Remotes").CharacterSoundEvent
+    local ACString = nil
+    
+    --&gt; os.clock hook
+    local RandomNumber = math.random(1e3, 1e5)
+
+    Hooks.Clock = hookfunction(os.clock, function(...)
+        return Hooks.Clock(...) + RandomNumber
+    end)
+
+    --&gt; namecall hook
+    Hooks.Namecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local Method = getnamecallmethod()
+        local Args = {...}
+
+        if not checkcaller() and self == Remote and (Method == "FireServer" or Method == "fireServer") and string.find(Args[1], "AC") then
+            if not HandshakeArgs then
+                if type(Args[2]) == "table" and #Args[2] == 19 then
+                    ACString = Args[1]
+                    HandshakeArgs = Args[2]
+                end
+            else
+                return coroutine.yield()
+            end
+        end
+
+        return Hooks.Namecall(self, ...)
+    end)
+
+    while not ACString and not HandshakeArgs do
+        task.wait()
+    end
+
+    print("Found handshake arguments.")
+
+    task.wait(3)
+
+    for _, v in pairs(getgc()) do
+        if type(v) == "function" then
+            if getinfo(v).source:find("PlayerModule.LocalScript") then
+                hookfunction(v, function() end)
+            end
+        end
+    end
+
+    print("Hooked all anticheat functions.")
+
+    local ReplicateHandshake = function()
+        return Remote:FireServer(ACString, HandshakeArgs, nil)
+    end
+
+    task.spawn(function()
+        while task.wait(0.4) do
+            local Success, Error = pcall(ReplicateHandshake)
+
+            if not Success then
+                warn("Bypass timed out.")
+                task.wait(20)
+                Player:Kick("Bypass timed out.")
+                return
+            end
+        end
+    end)
+
+    print("Replicated handshake.")
+end
+
+task.wait()
+
+print('Done! Now Loading')
+
+-- Orion UI Integration
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({Name = "Tyrant Hub", HidePremium = false, SaveConfig = true, ConfigFolder = "TyrantHub"})
+
+-- Catching Tab
+local CatchingTab = Window:MakeTab({
+    Name = "Catching",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local magEnabled = false
+local customDistance = 10
+local magnetDelayEnabled = false
+local magnetDelay = 0
+local autoCatchEnabled = false
+local catchRadius = 10
+local predictedBallPosition = nil
+local ballPredictionEnabled = false
+
+CatchingTab:AddSection({Name = "Magnets"})
+
+CatchingTab:AddToggle({
+    Name = "Magnets",
+    Default = false,
+    Callback = function(value)
+        magEnabled = value
+    end,
+})
+
+CatchingTab:AddSlider({
+    Name = "Magnets Range",
+    Min = 1,
+    Max = 25,
+    Default = 10,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 0.1,
+    ValueName = "Range",
+    Callback = function(value)
+        customDistance = value
+    end,
+})
+
+CatchingTab:AddToggle({
+    Name = "Magnets Delay",
+    Default = false,
+    Callback = function(value)
+        magnetDelayEnabled = value
+    end,
+})
+
+CatchingTab:AddSlider({
+    Name = "Magnets Delay",
+    Min = 0,
+    Max = 1,
+    Default = 0,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 0.1,
+    ValueName = "Delay",
+    Callback = function(value)
+        magnetDelay = value
+    end,
+})
+
+CatchingTab:AddToggle({
+    Name = "Auto-Catch",
+    Default = false,
+    Callback = function(value)
+        autoCatchEnabled = value
+    end,
+})
+
+CatchingTab:AddSlider({
+    Name = "Catch Radius",
+    Min = 1,
+    Max = 25,
+    Default = 10,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Radius",
+    Callback = function(value)
+        catchRadius = value
+    end,
+})
+
+CatchingTab:AddToggle({
+    Name = "Ball Prediction",
+    Default = false,
+    Callback = function(value)
+        ballPredictionEnabled = value
+    end,
+})
+
+local function updateMagnetStatus()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+
+    if character then
+        local ball = workspace:FindFirstChild("Football")
+
+        if ball then
+            if magEnabled then
+                if magnetDelayEnabled then
+                    wait(magnetDelay)
+                end
+                ball.Size = Vector3.new(customDistance, customDistance, customDistance)
+
+                -- Make the ball move towards the player's hands
+                local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+                if hand then
+                    local direction = (hand.Position - ball.Position).Unit
+                    local force = Instance.new("BodyVelocity")
+                    force.Velocity = direction * 100  -- Increase this value to make the pull stronger
+                    force.MaxForce = Vector3.new(10000, 10000, 10000)
+                    force.Parent = ball
+                    game:GetService("Debris"):AddItem(force, 0.1)
+                end
+
+                -- Show hitbox (Removed)
+            else
+                ball.Size = Vector3.new(1, 1, 1)
+                ball.Transparency = 1
+            end
+        end
+    end
+end
+
+local function predictBallPosition()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+    local ball = workspace:FindFirstChild("Football")
+
+    if ball and character then
+        local ballVelocity = ball.AssemblyLinearVelocity
+        local ballPosition = ball.Position
+        local predictedPosition = ballPosition + (ballVelocity * 5) -- Adjust the multiplier to change prediction range
+
+        predictedBallPosition = predictedPosition
+
+        -- Create or update prediction indicator
+        local predictionIndicator = workspace:FindFirstChild("PredictionIndicator")
+        if not predictionIndicator then
+            predictionIndicator = Instance.new("Part")
+            predictionIndicator.Name = "PredictionIndicator"
+            predictionIndicator.Size = Vector3.new(1, 1, 1)
+            predictionIndicator.Color = Color3.fromRGB(0, 255, 0)  -- Green color for prediction
+            predictionIndicator.Anchored = true
+            predictionIndicator.CanCollide = false
+            predictionIndicator.Parent = workspace
+        end
+        predictionIndicator.Position = predictedBallPosition
+    end
+end
+
+-- Player Tab
+local PlayerTab = Window:MakeTab({
+    Name = "Player",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local walkspeedEnabled = false
+local walkspeedValue = 16
+local jumppowerEnabled = false
+local jumppowerValue = 50
+
+PlayerTab:AddSection({Name = "Walkspeed"})
+
+PlayerTab:AddToggle({
+    Name = "Walkspeed",
+    Default = false,
+    Callback = function(value)
+        walkspeedEnabled = value
+        local player = game:GetService("Players").LocalPlayer
+        if player and player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid.WalkSpeed = walkspeedEnabled and walkspeedValue or 16
+        end
+    end,
+})
+
+PlayerTab:AddSlider({
+    Name = "Walkspeed Value",
+    Min = 16,
+    Max = 50,
+    Default = 16,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Speed",
+    Callback = function(value)
+        walkspeedValue = value
+        if walkspeedEnabled then
+            local player = game:GetService("Players").LocalPlayer
+            if player and player.Character and player.Character:FindFirstChild("Humanoid") then
+                player.Character.Humanoid.WalkSpeed = walkspeedValue
+            end
+        end
+    end,
+})
+
+PlayerTab:AddSection({Name = "Jump Power"})
+
+PlayerTab:AddToggle({
+    Name = "Jump Power",
+    Default = false,
+    Callback = function(value)
+        jumppowerEnabled = value
+        local player = game:GetService("Players").LocalPlayer
+        if player and player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid.JumpPower = jumppowerEnabled and jumppowerValue or 50
+        end
+    end,
+})
+
+PlayerTab:AddSlider({
+    Name = "Jump Power Value",
+    Min = 50,
+    Max = 100,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Power",
+    Callback = function(value)
+        jumppowerValue = value
+        if jumppowerEnabled then
+            local player = game:GetService("Players").LocalPlayer
+            if player and player.Character and player.Character:FindFirstChild("Humanoid") then
+                player.Character.Humanoid.JumpPower = jumppowerValue
+            end
+        end
+    end,
+})
+
+-- Info Tab
+local InfoTab = Window:MakeTab({
+    Name = "Info",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+InfoTab:AddLabel("Owner Name: Ozuya")
+InfoTab:AddLabel("Game Name: Football Fusion 2")
+
+-- Auto-Catch Functionality
+RunService.RenderStepped:Connect(function()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+    local ball = workspace:FindFirstChild("Football")
+
+    if autoCatchEnabled and character and ball then
+        local distance = (ball.Position - character.PrimaryPart.Position).magnitude
+        if distance <= catchRadius then
+            -- Simulate a click to catch the ball
+            local mouse = player:GetMouse()
+            mouse.Button1Down:Fire()
+        end
+    end
+
+    if ballPredictionEnabled then
+        predictBallPosition()
+    end
+
+    updateMagnetStatus()
+end)
+
+print('Script Loaded Successfully!')
