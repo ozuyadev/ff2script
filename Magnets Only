@@ -1,0 +1,95 @@
+-- Load Aqua UI library
+local AquaUI = loadstring(game:HttpGet("https://github.com/GhostDuckyy/UI-Libraries/blob/main/AquaLIB/source.lua"))()
+local Window = AquaUI:CreateWindow("Tyrant Hub")
+
+-- Catching Tab
+local CatchingTab = Window:CreateTab("Catching")
+
+-- Variables
+local magEnabled = false
+local customMagnetDistance = 10
+local autoCatchEnabled = false
+local autoCatchRadius = 10
+
+-- Magnet Feature
+CatchingTab:AddSection("Magnets")
+
+CatchingTab:AddToggle({
+    Name = "Enable Magnet",
+    Default = false,
+    Callback = function(value)
+        magEnabled = value
+    end
+})
+
+CatchingTab:AddSlider({
+    Name = "Magnet Range",
+    Min = 1,
+    Max = 25,
+    Default = 10,
+    Increment = 0.1,
+    Callback = function(value)
+        customMagnetDistance = value
+    end
+})
+
+-- Auto-Catch Feature
+CatchingTab:AddSection("Auto-Catch")
+
+CatchingTab:AddToggle({
+    Name = "Enable Auto-Catch",
+    Default = false,
+    Callback = function(value)
+        autoCatchEnabled = value
+    end
+})
+
+CatchingTab:AddSlider({
+    Name = "Auto-Catch Radius",
+    Min = 1,
+    Max = 25,
+    Default = 10,
+    Increment = 0.1,
+    Callback = function(value)
+        autoCatchRadius = value
+    end
+})
+
+-- Function to Update Magnet and Auto-Catch
+local function updateFeatures()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character then return end
+
+    local ball = workspace:FindFirstChild("Football")
+    if not ball then return end
+
+    -- Magnet Feature
+    if magEnabled then
+        local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+        if hand then
+            local direction = (hand.Position - ball.Position).Unit
+            local force = Instance.new("BodyVelocity")
+            force.Velocity = direction * 500
+            force.MaxForce = Vector3.new(50000, 50000, 50000)
+            force.Parent = ball
+            game:GetService("Debris"):AddItem(force, 0.1)
+        end
+    end
+
+    -- Auto-Catch Feature
+    if autoCatchEnabled then
+        local handPosition = (character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")).Position
+        if (ball.Position - handPosition).Magnitude <= autoCatchRadius then
+            -- Simulate click to catch the ball
+            UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    -- Add the code to catch the ball here
+                end
+            end)
+        end
+    end
+end
+
+-- Update Features Continuously
+game:GetService("RunService").Stepped:Connect(updateFeatures)
