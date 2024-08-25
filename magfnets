@@ -1,0 +1,131 @@
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/teppyboy/RbxScripts/master/Misc/UI_Libraries/Zypher/Library.lua"))()
+
+-- Create the main window
+local main = library:CreateMain({
+    projName = "Tyrant Hub",
+    Resizable = true,
+    MinSize = UDim2.new(0,400,0,400),
+    MaxSize = UDim2.new(0,750,0,500),
+})
+
+-- Create the Catching tab
+local category = main:CreateCategory("Catching")
+local section = category:CreateSection("Catching Features")
+
+-- Variables to store feature states
+local magnetEnabled = false
+local autoCatchEnabled = false
+local magnetRadius = 1
+local autoCatchRadius = 1
+
+-- Magnet Feature
+section:Create(
+    "Toggle",
+    "Magnet",
+    function(state)
+        magnetEnabled = state
+    end,
+    {
+        default = false,
+    }
+)
+
+section:Create(
+    "Slider",
+    "Magnet Slider",
+    function(value)
+        magnetRadius = value
+    end,
+    {
+        min = 1,
+        max = 25,
+        default = 1,
+    }
+)
+
+-- Auto-Catch Feature
+section:Create(
+    "Toggle",
+    "Auto-Catch",
+    function(state)
+        autoCatchEnabled = state
+    end,
+    {
+        default = false,
+    }
+)
+
+section:Create(
+    "Slider",
+    "Auto-Catch Slider",
+    function(value)
+        autoCatchRadius = value
+    end,
+    {
+        min = 1,
+        max = 25,
+        default = 1,
+    }
+)
+
+-- Function to update the ball's hitbox and attract it to the player's hands
+local function updateMagnetStatus()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+
+    if character then
+        local ball = workspace:FindFirstChild("Football")
+
+        if ball then
+            if magnetEnabled then
+                -- Extend the ball's hitbox
+                local hitboxSize = magnetRadius
+                ball.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+
+                -- Create or update BodyVelocity to pull the ball towards the player's hands
+                local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+                if hand then
+                    local direction = (hand.Position - ball.Position).Unit
+                    local force = Instance.new("BodyVelocity")
+                    force.Velocity = direction * 500  -- Increase this value for a stronger pull
+                    force.MaxForce = Vector3.new(50000, 50000, 50000)
+                    force.Parent = ball
+                    game:GetService("Debris"):AddItem(force, 0.1)
+                end
+            else
+                -- Reset ball hitbox size when magnet is disabled
+                ball.Size = Vector3.new(1, 1, 1)
+            end
+        end
+    end
+end
+
+-- Function to automatically catch the ball if within radius
+local function updateAutoCatch()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+
+    if character then
+        local ball = workspace:FindFirstChild("Football")
+
+        if ball and autoCatchEnabled then
+            local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+            if hand then
+                local ballPosition = ball.Position
+                local handPosition = hand.Position
+                local distance = (ballPosition - handPosition).magnitude
+
+                if distance < autoCatchRadius then
+                    -- Simulate catching the ball
+                    -- Implement actual catch mechanism here if needed
+                end
+            end
+        end
+    end
+end
+
+-- Connect the functions to run continuously
+game:GetService("RunService").RenderStepped:Connect(function()
+    updateMagnetStatus()
+    updateAutoCatch()
+end)
