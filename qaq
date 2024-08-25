@@ -1,0 +1,91 @@
+-- Load the Aqua UI library
+local lib = loadstring(game:HttpGet('https://raw.githubusercontent.com/TheoTheEpic/AquaLib/main/AquaLib.lua'))()
+
+-- Create the main window
+local window = lib.createWindow("Tyrant Hub", "TyrantHub", true)
+
+-- Create the Catching tab
+local catchingTab = window.createTab("Catching")
+
+-- Create a section within the Catching tab
+local catchingSection = catchingTab.createSection("Catching Features", false)
+
+-- Variables to store feature states
+local magnetRadius = 1
+local autoCatchRadius = 1
+
+-- Magnet Feature
+catchingSection.createText("Magnet Feature")
+catchingSection.createSlider("Magnet Slider", {min = 1, max = 25, default = 1}, function(value)
+    magnetRadius = value
+    -- Implement the functionality to update the magnet hitbox
+    -- This is where you should add code to adjust the magnet feature's radius
+end)
+
+-- Auto-Catch Feature
+catchingSection.createText("Auto-Catch Feature")
+catchingSection.createSlider("Auto-Catch Slider", {min = 1, max = 25, default = 1}, function(value)
+    autoCatchRadius = value
+    -- Implement the functionality to update the auto-catch hitbox
+    -- This is where you should add code to adjust the auto-catch feature's radius
+end)
+
+-- Function to check if the ball is within the magnet radius and pull it
+local function checkMagnet()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character then return end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    -- Find the ball (the ball name is "Football")
+    local ball = workspace:FindFirstChild("Football")
+    if not ball then return end
+
+    local ballPosition = ball.Position
+    local playerPosition = humanoidRootPart.Position
+    local distance = (ballPosition - playerPosition).magnitude
+
+    -- Apply magnet effect if within radius
+    if distance < magnetRadius then
+        -- Implement the magnet effect here
+        -- For example, applying a force to pull the ball towards the player's hands
+        local direction = (playerPosition - ballPosition).unit
+        local force = 500 -- Adjust the force as needed
+        ball.Velocity = direction * force
+    end
+end
+
+-- Function to automatically catch the ball if within radius
+local function checkAutoCatch()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character then return end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    -- Find the ball (the ball name is "Football")
+    local ball = workspace:FindFirstChild("Football")
+    if not ball then return end
+
+    local ballPosition = ball.Position
+    local playerPosition = humanoidRootPart.Position
+    local distance = (ballPosition - playerPosition).magnitude
+
+    -- Simulate click to catch the ball if within radius
+    if distance < autoCatchRadius then
+        -- Implement the auto-catch functionality here
+        -- This might involve sending an event or performing an action to simulate catching the ball
+        -- Example placeholder for catching simulation:
+        print("Ball caught!")
+    end
+end
+
+-- Connect the functions to an appropriate event or loop
+-- For example, run these checks continuously
+game:GetService("RunService").RenderStepped:Connect(function()
+    checkMagnet()
+    checkAutoCatch()
+end)
