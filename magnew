@@ -1,0 +1,132 @@
+-- Load the Zypher UI library
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/teppyboy/RbxScripts/master/Misc/UI_Libraries/Zypher/Library.lua"))()
+
+-- Create the main window
+local main = library:CreateMain({
+    projName = "Tyrant Hub",
+    Resizable = true,
+    MinSize = UDim2.new(0,400,0,400),
+    MaxSize = UDim2.new(0,750,0,500),
+})
+
+-- Create the Catching tab
+local category = main:CreateCategory("Catching")
+local section = category:CreateSection("Catching Features")
+
+-- Variables to store feature states
+local magnetRadius = 1
+local autoCatchRadius = 1
+local magEnabled = false
+local autoCatchEnabled = false
+
+-- Magnet Feature
+section:Create(
+    "Toggle",
+    "Magnet Feature",
+    function(state)
+        magEnabled = state
+    end,
+    {
+        default = false
+    }
+)
+
+section:Create(
+    "Slider",
+    "Magnet Slider",
+    function(value)
+        magnetRadius = value
+    end,
+    {
+        min = 1,
+        max = 25,
+        default = 1,
+        precise = true
+    }
+)
+
+-- Auto-Catch Feature
+section:Create(
+    "Toggle",
+    "Auto-Catch Feature",
+    function(state)
+        autoCatchEnabled = state
+    end,
+    {
+        default = false
+    }
+)
+
+section:Create(
+    "Slider",
+    "Auto-Catch Slider",
+    function(value)
+        autoCatchRadius = value
+    end,
+    {
+        min = 1,
+        max = 25,
+        default = 1,
+        precise = true
+    }
+)
+
+-- Function to check if the ball is within the magnet radius and pull it
+local function checkMagnet()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character then return end
+
+    local ball = workspace:FindFirstChild("Football")
+    if not ball then return end
+
+    if magEnabled then
+        -- Expand the ball's hitbox
+        ball.Size = Vector3.new(magnetRadius, magnetRadius, magnetRadius)
+        
+        local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+        if hand then
+            local direction = (hand.Position - ball.Position).Unit
+            local force = Instance.new("BodyVelocity")
+            force.Velocity = direction * 1000  -- Increase strength for stronger magnet
+            force.MaxForce = Vector3.new(100000, 100000, 100000)
+            force.Parent = ball
+            game:GetService("Debris"):AddItem(force, 0.1)
+        end
+    else
+        -- Reset the ball's size when magnet is disabled
+        ball.Size = Vector3.new(1, 1, 1)
+    end
+end
+
+-- Function to automatically catch the ball if within radius
+local function checkAutoCatch()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character then return end
+
+    local ball = workspace:FindFirstChild("Football")
+    if not ball then return end
+
+    if autoCatchEnabled then
+        local ballPosition = ball.Position
+        local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+        if hand then
+            local handPosition = hand.Position
+            local distance = (ballPosition - handPosition).magnitude
+
+            -- Simulate click to catch the ball if within radius
+            if distance < autoCatchRadius then
+                -- Replace with actual implementation to simulate a click
+                -- Example for simulation (depends on the game mechanics)
+                game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("ScreenGui"):FindFirstChild("Button").MouseButton1Click:Fire()
+            end
+        end
+    end
+end
+
+-- Connect the functions to an appropriate event or loop
+game:GetService("RunService").RenderStepped:Connect(function()
+    checkMagnet()
+    checkAutoCatch()
+end)
