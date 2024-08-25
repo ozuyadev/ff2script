@@ -1,0 +1,319 @@
+-- Anti-Cheat Bypass Initialization
+print('Initializing AC Bypass!')
+
+--// Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Teams = game:GetService("Teams")
+local TweenService = game:GetService("TweenService")
+local Stats = game:GetService("Stats")
+
+if game.PlaceId ~= 8206123457 or game.PlaceId == 8204899140 then
+    -- Made by Unlimited, Modified/Updated by NG/Johan Peterson
+
+    --// Variables
+    local Player = Players.LocalPlayer
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+    local HRP = Character and Character:FindFirstChild("HumanoidRootPart")
+    local Hooks = {}
+    local HandshakeArgs = nil
+    local Remote = ReplicatedStorage:WaitForChild("Remotes").CharacterSoundEvent
+    local ACString = nil
+    
+    -- os.clock hook
+    local RandomNumber = math.random(1e3, 1e5)
+
+    Hooks.Clock = hookfunction(os.clock, function(...)
+        return Hooks.Clock(...) + RandomNumber
+    end)
+
+    -- namecall hook
+    Hooks.Namecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local Method = getnamecallmethod()
+        local Args = {...}
+
+        if not checkcaller() and self == Remote and (Method == "FireServer" or Method == "fireServer") and string.find(Args[1], "AC") then
+            if not HandshakeArgs then
+                if type(Args[2]) == "table" and #Args[2] == 19 then
+                    ACString = Args[1]
+                    HandshakeArgs = Args[2]
+                end
+            else
+                return coroutine.yield()
+            end
+        end
+
+        return Hooks.Namecall(self, ...)
+    end)
+
+    while not ACString and not HandshakeArgs do
+        task.wait()
+    end
+
+    print("Found handshake arguments.")
+
+    task.wait(3)
+
+    for _, v in pairs(getgc()) do
+        if type(v) == "function" then
+            if getinfo(v).source:find("PlayerModule.LocalScript") then
+                hookfunction(v, function() end)
+            end
+        end
+    end
+
+    print("Hooked all anticheat functions.")
+
+    local ReplicateHandshake = function()
+        return Remote:FireServer(ACString, HandshakeArgs, nil)
+    end
+
+    task.spawn(function()
+        while task.wait(0.4) do
+            local Success, Error = pcall(ReplicateHandshake)
+
+            if not Success then
+                warn("Bypass timed out.")
+                task.wait(20)
+                Player:Kick("Bypass timed out.")
+                return
+            end
+        end
+    end)
+
+    print("Replicated handshake.")
+end
+
+task.wait()
+
+print('Done! Now Loading')
+
+-- Luminosity UI Integration
+local Luminosity = loadstring(game:HttpGet("https://raw.githubusercontent.com/GhostDuckyy/UI-Libraries/main/Luminosity%20Interface%20v1/source.lua", true))()
+local Window = Luminosity.new("Luminosity UI", "v1.0.0", 4370345701)
+
+-- Tabs and Features Setup
+local function setupCatchingTab(tab)
+    local Folder = tab.Folder("Catching", "A bunch of catching options")
+    
+    local magEnabled = false
+    local customDistance = 10
+    local magnetDelayEnabled = false
+    local magnetDelay = 0
+    local showTransparencyState = false
+    local hitboxIndicator = nil
+    local ballPredictionEnabled = false
+    local predictionMarker = nil
+
+    Folder.Toggle("Magnets", function(Status)
+        magEnabled = Status
+    end)
+    Folder.Slider("Magnets Range", {Precise = true, Default = 10, Min = 1, Max = 25}, function(Status)
+        customDistance = Status
+    end)
+    Folder.Toggle("Magnets Delay", function(Status)
+        magnetDelayEnabled = Status
+    end)
+    Folder.Slider("Magnets Delay", {Precise = true, Default = 0, Min = 0, Max = 1}, function(Status)
+        magnetDelay = Status
+    end)
+    Folder.Toggle("Show Hitbox", function(Status)
+        showTransparencyState = Status
+        if hitboxIndicator then
+            hitboxIndicator.Transparency = showTransparencyState and 0.3 or 1
+        end
+    end)
+    Folder.Toggle("Ball Prediction", function(Status)
+        ballPredictionEnabled = Status
+        if predictionMarker then
+            predictionMarker:Destroy()
+            predictionMarker = nil
+        end
+    end)
+
+    local function updateMagnetStatus()
+        local player = Players.LocalPlayer
+        local character = player.Character
+
+        if character then
+            local ball = workspace:FindFirstChild("Football")
+
+            if ball then
+                if magEnabled then
+                    if magnetDelayEnabled then
+                        wait(magnetDelay)
+                    end
+                    ball.Size = Vector3.new(customDistance, customDistance, customDistance)
+
+                    local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("LeftHand")
+                    if hand then
+                        local direction = (hand.Position - ball.Position).Unit
+                        local force = Instance.new("BodyVelocity")
+                        force.Velocity = direction * 150
+                        force.MaxForce = Vector3.new(10000, 10000, 10000)
+                        force.Parent = ball
+                        game:GetService("Debris"):AddItem(force, 0.1)
+                    end
+
+                    if showTransparencyState then
+                        if not hitboxIndicator then
+                            hitboxIndicator = Instance.new("Part")
+                            hitboxIndicator.Name = "HitboxIndicator"
+                            hitboxIndicator.Size = Vector3.new(customDistance, customDistance, customDistance)
+                            hitboxIndicator.Color = Color3.fromRGB(128, 128, 128)
+                            hitboxIndicator.Anchored = true
+                            hitboxIndicator.CanCollide = false
+                            hitboxIndicator.Transparency = 0.3
+                            hitboxIndicator.Parent = ball
+                        else
+                            hitboxIndicator.Size = Vector3.new(customDistance, customDistance, customDistance)
+                            hitboxIndicator.Transparency = 0.3
+                        end
+                    elseif hitboxIndicator then
+                        hitboxIndicator:Destroy()
+                        hitboxIndicator = nil
+                    end
+                else
+                    ball.Size = Vector3.new(1, 1, 1)
+                    if hitboxIndicator then
+                        hitboxIndicator:Destroy()
+                        hitboxIndicator = nil
+                    end
+                end
+
+                if ballPredictionEnabled then
+                    local velocity = ball:FindFirstChildOfClass("BodyVelocity")
+                    if velocity then
+                        local predictedPosition = ball.Position + (velocity.Velocity * 10)
+                        if not predictionMarker then
+                            predictionMarker = Instance.new("Part")
+                            predictionMarker.Name = "PredictionMarker"
+                            predictionMarker.Size = Vector3.new(1, 1, 1)
+                            predictionMarker.Color = Color3.fromRGB(255, 0, 0)
+                            predictionMarker.Anchored = true
+                            predictionMarker.CanCollide = false
+                            predictionMarker.Transparency = 0.5
+                            predictionMarker.Parent = workspace
+                        end
+                        predictionMarker.Position = predictedPosition
+                    end
+                end
+            end
+        end
+    end
+
+    spawn(function()
+        while true do
+            updateMagnetStatus()
+            wait(1)
+        end
+    end)
+end
+
+local function setupPlayerTab(tab)
+    local Folder = tab.Folder("Player Stats", "Adjust your player's stats")
+    
+    local walkspeedEnabled = false
+    local currentWalkspeed = 16
+    local jumpPowerEnabled = false
+    local currentJumpPower = 50
+
+    Folder.Toggle("Walkspeed", function(Status)
+        walkspeedEnabled = Status
+    end)
+    Folder.Slider("Walkspeed", {Precise = true, Default = 16, Min = 20, Max = 23}, function(Status)
+        currentWalkspeed = Status
+    end)
+    Folder.Toggle("JumpPower", function(Status)
+        jumpPowerEnabled = Status
+    end)
+    Folder.Slider("JumpPower", {Precise = true, Default = 50, Min = 50, Max = 60}, function(Status)
+        currentJumpPower = Status
+    end)
+
+    local function updatePlayerStats()
+        local player = Players.LocalPlayer
+        local character = player.Character
+
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = walkspeedEnabled and currentWalkspeed or 16
+                humanoid.JumpPower = jumpPowerEnabled and currentJumpPower or 50
+            end
+        end
+    end
+
+    spawn(function()
+        while true do
+            updatePlayerStats()
+            wait(1)
+        end
+    end)
+end
+
+local function setupMiscTab(tab)
+    local Folder = tab.Folder("Misc", "Miscellaneous options")
+    
+    local followBallCarrier = false
+    local ballPredictionEnabled = false
+
+    Folder.Toggle("Follow Ball Carrier", function(Status)
+        followBallCarrier = Status
+    end)
+    Folder.Toggle("Ball Prediction", function(Status)
+        ballPredictionEnabled = Status
+    end)
+
+    local function updateMiscFeatures()
+        local player = Players.LocalPlayer
+        if followBallCarrier then
+            local ball = workspace:FindFirstChild("Football")
+            if ball then
+                player.Character:SetPrimaryPartCFrame(ball.CFrame)
+            end
+        end
+
+        if ballPredictionEnabled then
+            -- Add prediction logic here if needed
+        end
+    end
+
+    spawn(function()
+        while true do
+            updateMiscFeatures()
+            wait(1)
+        end
+    end)
+end
+
+local function setupInfoTab(tab)
+    local Folder = tab.Folder("Info", "Information about the game")
+    
+    Folder.Label("Owner: Ozuya")
+    Folder.Label("Game: Football Fusion 2")
+end
+
+-- Initialize Tabs
+local CatchingTab = Window.Tab("Catching", 6026568198)
+setupCatchingTab(CatchingTab)
+
+local PlayerTab = Window.Tab("Player", 6026568198)
+setupPlayerTab(PlayerTab)
+
+local MiscTab = Window.Tab("Misc", 6026568198)
+setupMiscTab(MiscTab)
+
+local InfoTab = Window.Tab("Info", 6026568198)
+setupInfoTab(InfoTab)
+
+-- Toggle UI with F key
+UserInputService.InputBegan:Connect(function(Input)
+    if Input.KeyCode == Enum.KeyCode.F then
+        Window:Toggle()
+    end
+end)
+
+print('Luminosity UI Loaded Successfully!')
