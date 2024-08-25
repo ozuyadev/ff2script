@@ -1,0 +1,41 @@
+-- Load Aqua UI library
+local lib = loadstring(game:HttpGet('https://raw.githubusercontent.com/TheoTheEpic/AquaLib/main/AquaLib.lua'))()
+
+-- Create Window
+local window = lib.createWindow("Tyrant Hub", "Football Fusion 2", true)
+
+-- Create Tab
+local catchingTab = window.createTab("Catching")
+local section = catchingTab.createSection("Features", false)
+
+-- Magnet Feature
+section.createText("Magnet Feature")
+local magnetSlider = section.createSlider("Magnet Slider", {min = 1, max = 25, default = 10}, function(value)
+    print("Magnet Range:", value)
+    -- Implement magnet functionality here
+end)
+
+-- Auto-Catch Feature
+section.createText("Auto-Catch Feature")
+local autoCatchSlider = section.createSlider("Auto-Catch Slider", {min = 1, max = 25, default = 10}, function(value)
+    print("Auto-Catch Range:", value)
+    -- Implement auto-catch functionality here
+end)
+
+-- Example callback for sliders (replace with actual functionality)
+local function updateMagnetRange(value)
+    print("Magnet Range updated to:", value)
+    -- Implement magnet logic here
+end
+
+local function updateAutoCatchRange(value)
+    print("Auto-Catch Range updated to:", value)
+    -- Implement auto-catch logic here
+end
+
+-- Ensure sliders use the callbacks
+magnetSlider.Callback = updateMagnetRange
+autoCatchSlider.Callback = updateAutoCatchRange
+
+-- Example of using a notification
+window.notification("Welcome to Tyrant Hub", "Catching features are ready!")
